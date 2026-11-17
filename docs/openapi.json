@@ -1,0 +1,4633 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Yamaha Consent API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health",
+        "description": "Verifica que la API esté arriba y que la base de datos responda.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/consents": {
+      "post": {
+        "tags": [
+          "kizuna"
+        ],
+        "summary": "Registrar o actualizar un cliente desde KIZUNA",
+        "operationId": "create_consent_api_v1_consents_post",
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "CREATED: registro, enlace y WhatsApp nuevos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentCreateResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "UPDATED (RN-04): se actualizaron los datos del cliente; no se envía WhatsApp",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentCreateResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "El IdentifierId ya existe y está borrado lógicamente (NO_ACEPTADO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentConflictResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "kizuna"
+        ],
+        "summary": "Listar los registros de un cliente",
+        "description": "Registros del customerId (y del dealerCode, opcional), del más reciente al más antiguo.\n\nIncluye los borrados lógicamente. Sin resultados → 200 con lista vacía. El customerId se normaliza igual que al\nregistrarlo (p. ej. \"7629-9887\" encuentra \"76299887\").",
+        "operationId": "search_consents_api_v1_consents_get",
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customerid"
+            }
+          },
+          {
+            "name": "dealerCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dealercode"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ConsentDetail"
+                  },
+                  "title": "Response Search Consents Api V1 Consents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/consents/{IdentifierId}": {
+      "get": {
+        "tags": [
+          "kizuna"
+        ],
+        "summary": "Consultar un registro por IdentifierId",
+        "description": "Incluye los registros borrados lógicamente y las copias vinculadas (RN-04). No devuelve nombre, teléfono ni\ncorreo.",
+        "operationId": "read_consent_api_v1_consents__IdentifierId__get",
+        "security": [
+          {
+            "ApiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "IdentifierId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identifierid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe el registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/consent-links/{token}": {
+      "get": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Validar el enlace de la landing",
+        "description": "`linkStatus`: VALID, EXPIRED o USED (un enlace vencido o usado responde 200; la landing lo trata).",
+        "operationId": "read_consent_link_api_v1_public_consent_links__token__get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentLinkInfo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe un enlace con ese token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkNotFoundResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/consent-links/{token}/submit": {
+      "post": {
+        "tags": [
+          "public"
+        ],
+        "summary": "Registrar las respuestas del cliente",
+        "description": "Con `personalDataConsent` en false (o null) se registra el rechazo (RN-01): no es un error, responde 200\nNO_ACEPTADO. Un check en null se registra como false.",
+        "operationId": "submit_consent_link_api_v1_public_consent_links__token__submit_post",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentSubmitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentSubmitResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe un enlace con ese token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkNotFoundResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "El enlace venció o ya fue usado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkGoneResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/twilio/status": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "summary": "Callback de estado de Twilio",
+        "description": "Guarda el evento y actualiza el estado del mensaje. Responde 204 también ante callbacks repetidos, de\nmensajes desconocidos o con estados desconocidos (Twilio no tiene nada que corregir en esos casos).",
+        "operationId": "twilio_status_callback_api_v1_webhooks_twilio_status_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "Falta la firma X-Twilio-Signature o es inválida"
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/auth/login": {
+      "post": {
+        "tags": [
+          "backoffice-auth"
+        ],
+        "summary": "Iniciar sesión",
+        "description": "Sección 5.5. Responde el usuario (`Me`) y la cookie `__session`.\n\nErrores: 401 INVALID_CREDENTIALS (usuario inexistente o contraseña incorrecta), 423 ACCOUNT_LOCKED, 403\nUSER_INACTIVE, 403 CSRF_HEADER_MISSING.",
+        "operationId": "login_api_v1_backoffice_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Locked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/auth/logout": {
+      "post": {
+        "tags": [
+          "backoffice-auth"
+        ],
+        "summary": "Cerrar sesión",
+        "description": "Revoca la sesión actual y borra la cookie. Idempotente: sin sesión vigente también responde 204.",
+        "operationId": "logout_api_v1_backoffice_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/auth/me": {
+      "get": {
+        "tags": [
+          "backoffice-auth"
+        ],
+        "summary": "Usuario con sesión",
+        "description": "También responde con un cambio de contraseña pendiente (`mustChangePassword: true`).",
+        "operationId": "me_api_v1_backoffice_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/backoffice/auth/change-password": {
+      "post": {
+        "tags": [
+          "backoffice-auth"
+        ],
+        "summary": "Cambiar la contraseña",
+        "description": "Cierra las demás sesiones y rota la actual (nueva cookie). 422 CURRENT_PASSWORD_INVALID o PASSWORD_POLICY.\n\nDespués del commit envía el correo \"Tu contraseña fue actualizada\".",
+        "operationId": "change_password_api_v1_backoffice_auth_change_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/backoffice/auth/password-policy": {
+      "get": {
+        "tags": [
+          "backoffice-auth"
+        ],
+        "summary": "Política de contraseñas",
+        "description": "Para el checklist del frontend. Público.",
+        "operationId": "password_policy_api_v1_backoffice_auth_password_policy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordPolicyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/auth/forgot-password": {
+      "post": {
+        "tags": [
+          "backoffice-auth"
+        ],
+        "summary": "Pedir un enlace para restablecer la contraseña",
+        "description": "Siempre 202 con el mismo cuerpo, exista o no el usuario (no revela cuentas). `identifier`: usuario o correo.",
+        "operationId": "forgot_password_api_v1_backoffice_auth_forgot_password_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetailResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/auth/password-reset/{token}": {
+      "get": {
+        "tags": [
+          "backoffice-auth"
+        ],
+        "summary": "Estado de un enlace de restablecimiento",
+        "description": "`tokenStatus`: VALID, EXPIRED, USED o INVALID (invalidado por uno más nuevo o usuario no activo). No devuelve\ndatos del usuario. Token inexistente → 404 RESET_LINK_NOT_FOUND.",
+        "operationId": "password_reset_status_api_v1_backoffice_auth_password_reset__token__get",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetTokenStatusResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/auth/password-reset": {
+      "post": {
+        "tags": [
+          "backoffice-auth"
+        ],
+        "summary": "Restablecer la contraseña con el enlace",
+        "description": "Cambia la contraseña, desbloquea al usuario y cierra todas sus sesiones. No inicia sesión. 404\nRESET_LINK_NOT_FOUND, 410 RESET_LINK_INVALID (vencido, usado, invalidado o usuario no activo), 422 PASSWORD_POLICY.\nDespués del commit envía el correo \"Tu contraseña fue actualizada\".",
+        "operationId": "password_reset_api_v1_backoffice_auth_password_reset_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/profile": {
+      "get": {
+        "tags": [
+          "backoffice-users"
+        ],
+        "summary": "Mi perfil",
+        "description": "Mismo cuerpo que `GET /auth/me`.",
+        "operationId": "get_profile_api_v1_backoffice_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "backoffice-users"
+        ],
+        "summary": "Editar mi perfil",
+        "description": "Nombres, apellidos, correo y celular (`phone: null` lo borra). Cambiar el correo exige `currentPassword` (422\nCURRENT_PASSWORD_INVALID); correo de otro usuario → 409 DUPLICATE. `dni`, `username` o `roleCode` → 422.",
+        "operationId": "update_profile_api_v1_backoffice_profile_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/backoffice/roles": {
+      "get": {
+        "tags": [
+          "backoffice-users"
+        ],
+        "summary": "Roles (tipos de usuario)",
+        "operationId": "list_roles_api_v1_backoffice_roles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CodeName"
+                  },
+                  "type": "array",
+                  "title": "Response List Roles Api V1 Backoffice Roles Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/backoffice/users": {
+      "get": {
+        "tags": [
+          "backoffice-users"
+        ],
+        "summary": "Lista de usuarios",
+        "description": "Excluye los eliminados. `q`: DNI, nombres, apellidos, nombre completo, usuario o correo. `status`: ACTIVO,\nINACTIVO o BLOQUEADO (derivado). `sortBy`: lastNames (apellidos y nombres), username, createdAt, lastLoginAt.",
+        "operationId": "list_users_api_v1_backoffice_users_get",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Pagesize"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string",
+              "default": "asc",
+              "title": "Sortorder"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "roleCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/RoleCode"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Rolecode"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/UserStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "lastNames",
+                "username",
+                "createdAt",
+                "lastLoginAt"
+              ],
+              "type": "string",
+              "default": "lastNames",
+              "title": "Sortby"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_UserSummary_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "backoffice-users"
+        ],
+        "summary": "Crear un usuario",
+        "description": "Crea el usuario con una contraseña temporal (se muestra una sola vez) y cambio obligatorio en el primer\ningreso. 409 DUPLICATE (DNI, usuario o correo) con su `field`.",
+        "operationId": "create_user_api_v1_backoffice_users_post",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserCreatedResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/users/{userId}": {
+      "get": {
+        "tags": [
+          "backoffice-users"
+        ],
+        "summary": "Detalle de un usuario",
+        "operationId": "get_user_api_v1_backoffice_users__userId__get",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Userid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "backoffice-users"
+        ],
+        "summary": "Editar un usuario",
+        "description": "`username` no se edita. 409 VERSION_CONFLICT, SELF_ACTION_NOT_ALLOWED (cambiar el propio rol), LAST_ADMIN o\nDUPLICATE.",
+        "operationId": "update_user_api_v1_backoffice_users__userId__put",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Userid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "backoffice-users"
+        ],
+        "summary": "Eliminar un usuario",
+        "description": "Borrado lógico; cierra sus sesiones. No sobre sí mismo ni sobre el último Administrador activo.",
+        "operationId": "delete_user_api_v1_backoffice_users__userId__delete",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Userid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/users/{userId}/activate": {
+      "post": {
+        "tags": [
+          "backoffice-users"
+        ],
+        "summary": "Activar un usuario",
+        "description": "Idempotente.",
+        "operationId": "activate_user_api_v1_backoffice_users__userId__activate_post",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Userid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/users/{userId}/deactivate": {
+      "post": {
+        "tags": [
+          "backoffice-users"
+        ],
+        "summary": "Desactivar un usuario",
+        "description": "Cierra sus sesiones. No sobre sí mismo ni sobre el último Administrador activo. Idempotente.",
+        "operationId": "deactivate_user_api_v1_backoffice_users__userId__deactivate_post",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Userid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/users/{userId}/unlock": {
+      "post": {
+        "tags": [
+          "backoffice-users"
+        ],
+        "summary": "Desbloquear un usuario",
+        "description": "Quita el bloqueo por intentos fallidos. Idempotente.",
+        "operationId": "unlock_user_api_v1_backoffice_users__userId__unlock_post",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Userid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/users/{userId}/reset-password": {
+      "post": {
+        "tags": [
+          "backoffice-users"
+        ],
+        "summary": "Generar una contraseña temporal",
+        "description": "Contraseña temporal (se muestra una sola vez) con cambio obligatorio; desbloquea y cierra sus sesiones. No\nsobre sí mismo (para eso está Cambiar contraseña).",
+        "operationId": "reset_password_api_v1_backoffice_users__userId__reset_password_post",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Userid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemporaryPasswordResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/dealers": {
+      "get": {
+        "tags": [
+          "backoffice-dealers"
+        ],
+        "summary": "Lista de dealers",
+        "description": "Excluye los eliminados. `q`: código, razón social, RUC o persona de contacto. Filtros `departmentCode`,\n`provinceCode`, `districtUbigeo`. `sortBy`: dealerCode (default), businessName, ruc, createdAt, updatedAt.",
+        "operationId": "list_dealers_api_v1_backoffice_dealers_get",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Pagesize"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "departmentCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Departmentcode"
+            }
+          },
+          {
+            "name": "provinceCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provincecode"
+            }
+          },
+          {
+            "name": "districtUbigeo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Districtubigeo"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "dealerCode",
+                "businessName",
+                "ruc",
+                "createdAt",
+                "updatedAt"
+              ],
+              "type": "string",
+              "default": "dealerCode",
+              "title": "Sortby"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string",
+              "default": "asc",
+              "title": "Sortorder"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_DealerDetail_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "backoffice-dealers"
+        ],
+        "summary": "Registrar un dealer",
+        "description": "409 DUPLICATE (`dealerCode` de un dealer vigente, sin distinguir mayúsculas); 422 DISTRICT_NOT_FOUND.",
+        "operationId": "create_dealer_api_v1_backoffice_dealers_post",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DealerCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DealerDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/dealers/lookup": {
+      "get": {
+        "tags": [
+          "backoffice-dealers"
+        ],
+        "summary": "Buscar el dealer vigente por código",
+        "description": "`dealerCode` sin distinguir mayúsculas (trim). Eliminado o inexistente → 404 NOT_FOUND.",
+        "operationId": "lookup_dealer_api_v1_backoffice_dealers_lookup_get",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "dealerCode",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Dealercode"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DealerDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/dealers/export": {
+      "get": {
+        "tags": [
+          "backoffice-dealers"
+        ],
+        "summary": "Exportar dealers a Excel",
+        "description": "Mismos filtros y orden que la lista, sin paginación. Archivo `dealers_AAAAMMDD_HHMM.xlsx` (hora de Lima).",
+        "operationId": "export_dealers_api_v1_backoffice_dealers_export_get",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "departmentCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Departmentcode"
+            }
+          },
+          {
+            "name": "provinceCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Provincecode"
+            }
+          },
+          {
+            "name": "districtUbigeo",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Districtubigeo"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "dealerCode",
+                "businessName",
+                "ruc",
+                "createdAt",
+                "updatedAt"
+              ],
+              "type": "string",
+              "default": "dealerCode",
+              "title": "Sortby"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string",
+              "default": "asc",
+              "title": "Sortorder"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo .xlsx",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {}
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/dealers/{dealerId}": {
+      "get": {
+        "tags": [
+          "backoffice-dealers"
+        ],
+        "summary": "Detalle de un dealer",
+        "operationId": "get_dealer_api_v1_backoffice_dealers__dealerId__get",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "dealerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Dealerid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DealerDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "backoffice-dealers"
+        ],
+        "summary": "Editar un dealer",
+        "description": "Reemplazo completo de los campos editables (`dealerCode` no se edita). 409 VERSION_CONFLICT; 422\nDISTRICT_NOT_FOUND.",
+        "operationId": "update_dealer_api_v1_backoffice_dealers__dealerId__put",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "dealerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Dealerid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DealerUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DealerDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "backoffice-dealers"
+        ],
+        "summary": "Eliminar un dealer",
+        "description": "Borrado lógico; el código queda libre para un registro nuevo.",
+        "operationId": "delete_dealer_api_v1_backoffice_dealers__dealerId__delete",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "dealerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Dealerid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/ubigeo/departments": {
+      "get": {
+        "tags": [
+          "backoffice-catalogs"
+        ],
+        "summary": "Departamentos",
+        "description": "Ordenados por nombre.",
+        "operationId": "list_departments_api_v1_backoffice_ubigeo_departments_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CodeName"
+                  },
+                  "type": "array",
+                  "title": "Response List Departments Api V1 Backoffice Ubigeo Departments Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ]
+      }
+    },
+    "/api/v1/backoffice/ubigeo/departments/{departmentCode}/provinces": {
+      "get": {
+        "tags": [
+          "backoffice-catalogs"
+        ],
+        "summary": "Provincias de un departamento",
+        "description": "Ordenadas por nombre. Departamento inexistente → 404 NOT_FOUND.",
+        "operationId": "list_provinces_api_v1_backoffice_ubigeo_departments__departmentCode__provinces_get",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "departmentCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Departmentcode"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CodeName"
+                  },
+                  "title": "Response List Provinces Api V1 Backoffice Ubigeo Departments  Departmentcode  Provinces Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/ubigeo/provinces/{provinceCode}/districts": {
+      "get": {
+        "tags": [
+          "backoffice-catalogs"
+        ],
+        "summary": "Distritos de una provincia",
+        "description": "Ordenados por nombre. Provincia inexistente → 404 NOT_FOUND.",
+        "operationId": "list_districts_api_v1_backoffice_ubigeo_provinces__provinceCode__districts_get",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "provinceCode",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Provincecode"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CodeName"
+                  },
+                  "title": "Response List Districts Api V1 Backoffice Ubigeo Provinces  Provincecode  Districts Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backoffice/audit-logs": {
+      "get": {
+        "tags": [
+          "backoffice-audit"
+        ],
+        "summary": "Bitácora de auditoría",
+        "description": "Filtros: `from` y `to` (AAAA-MM-DD en hora de Lima; `to` incluye todo su día; `from > to` → 422),\n`actorUserId`, `action`, `entityType`, `entityId`. Orden fijo: `occurredAt` descendente.",
+        "operationId": "list_audit_logs_api_v1_backoffice_audit_logs_get",
+        "security": [
+          {
+            "BackofficeSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "title": "Page"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Pagesize"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "name": "actorUserId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Actoruserid"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AuditAction"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action"
+            }
+          },
+          {
+            "name": "entityType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AuditEntityType"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entitytype"
+            }
+          },
+          {
+            "name": "entityId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Entityid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_AuditLogItem_"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuditAction": {
+        "type": "string",
+        "enum": [
+          "AUTH_LOGIN_SUCCEEDED",
+          "AUTH_LOGIN_FAILED",
+          "AUTH_ACCOUNT_LOCKED",
+          "AUTH_LOGOUT",
+          "AUTH_PASSWORD_CHANGED",
+          "AUTH_PASSWORD_RESET_REQUESTED",
+          "AUTH_PASSWORD_RESET_COMPLETED",
+          "USER_CREATED",
+          "USER_UPDATED",
+          "USER_ACTIVATED",
+          "USER_DEACTIVATED",
+          "USER_DELETED",
+          "USER_UNLOCKED",
+          "USER_PASSWORD_RESET_BY_ADMIN",
+          "PROFILE_UPDATED",
+          "DEALER_CREATED",
+          "DEALER_UPDATED",
+          "DEALER_DELETED",
+          "DEALERS_EXPORTED",
+          "SYSTEM_PURGE"
+        ],
+        "title": "AuditAction",
+        "description": "Catálogo de acciones de la bitácora (sección 5.10). Se guarda como varchar: agregar una acción no requiere\nmigración."
+      },
+      "AuditEntityType": {
+        "type": "string",
+        "enum": [
+          "USER",
+          "DEALER"
+        ],
+        "title": "AuditEntityType"
+      },
+      "AuditLogItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "occurredAt": {
+            "type": "string",
+            "title": "Occurredat"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "entityType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entitytype"
+          },
+          "entityId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entityid"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "ipAddress": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ipaddress"
+          },
+          "userAgent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Useragent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "occurredAt",
+          "actor",
+          "action",
+          "entityType",
+          "entityId",
+          "details",
+          "ipAddress",
+          "userAgent"
+        ],
+        "title": "AuditLogItem"
+      },
+      "ChangePasswordRequest": {
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Currentpassword"
+          },
+          "newPassword": {
+            "type": "string",
+            "title": "Newpassword"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "title": "ChangePasswordRequest"
+      },
+      "CodeName": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "name"
+        ],
+        "title": "CodeName"
+      },
+      "ConsentConflictResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "IdentifierId": {
+            "type": "string",
+            "title": "Identifierid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ConsentStatus"
+          },
+          "isDeleted": {
+            "type": "integer",
+            "title": "Isdeleted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail",
+          "IdentifierId",
+          "status",
+          "isDeleted"
+        ],
+        "title": "ConsentConflictResponse",
+        "description": "409: el IdentifierId ya existe y está borrado lógicamente (NO_ACEPTADO). No se modifica nada."
+      },
+      "ConsentCreateRequest": {
+        "properties": {
+          "_request": {
+            "$ref": "#/components/schemas/ConsentRequestData"
+          }
+        },
+        "type": "object",
+        "required": [
+          "_request"
+        ],
+        "title": "ConsentCreateRequest",
+        "description": "Body de POST /api/v1/consents: KIZUNA envuelve los datos en `_request`.",
+        "examples": [
+          {
+            "_request": {
+              "IdentifierId": "100002001",
+              "customerEmail": "nombre@email.com",
+              "customerId": "76299887",
+              "customerName": "Nombre",
+              "customerPhone": "+51999111222",
+              "dealerCode": "CL0001",
+              "dealerName": "ABC Motors",
+              "requestDateTime": "2026-11-02T10:35:00-05:00"
+            }
+          }
+        ]
+      },
+      "ConsentCreateResponse": {
+        "properties": {
+          "IdentifierId": {
+            "type": "string",
+            "title": "Identifierid"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "UPDATED"
+            ],
+            "title": "Result"
+          },
+          "affectedIdentifierId": {
+            "type": "string",
+            "title": "Affectedidentifierid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ConsentStatus"
+          },
+          "whatsapp": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhatsAppSendStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "IdentifierId",
+          "result",
+          "affectedIdentifierId",
+          "status",
+          "whatsapp"
+        ],
+        "title": "ConsentCreateResponse",
+        "description": "Respuesta de POST /api/v1/consents (201 CREATED o 200 UPDATED). No incluye datos personales.",
+        "examples": [
+          {
+            "IdentifierId": "100002001",
+            "affectedIdentifierId": "100002001",
+            "result": "CREATED",
+            "status": "PENDIENTE",
+            "whatsapp": {
+              "status": "queued"
+            }
+          }
+        ]
+      },
+      "ConsentDetail": {
+        "properties": {
+          "IdentifierId": {
+            "type": "string",
+            "title": "Identifierid"
+          },
+          "customerId": {
+            "type": "string",
+            "title": "Customerid"
+          },
+          "dealerCode": {
+            "type": "string",
+            "title": "Dealercode"
+          },
+          "dealerName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dealername"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ConsentStatus"
+          },
+          "personalDataConsent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personaldataconsent"
+          },
+          "marketingConsentYMDP": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketingconsentymdp"
+          },
+          "marketingConsentDEALER": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketingconsentdealer"
+          },
+          "consentDateTime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consentdatetime"
+          },
+          "requestDateTime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestdatetime"
+          },
+          "isDeleted": {
+            "type": "integer",
+            "title": "Isdeleted"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "IdentifierId",
+          "customerId",
+          "dealerCode",
+          "dealerName",
+          "status",
+          "personalDataConsent",
+          "marketingConsentYMDP",
+          "marketingConsentDEALER",
+          "consentDateTime",
+          "requestDateTime",
+          "isDeleted",
+          "createdAt"
+        ],
+        "title": "ConsentDetail",
+        "description": "Un registro en las consultas de KIZUNA (sección 2.4). No incluye nombre, teléfono ni correo.\n\nLos consentimientos usan los mismos nombres que el callback (M5). Son null solo mientras el registro está\nPENDIENTE. Las fechas van en la zona horaria de KIZUNA (KIZUNA_TIMEZONE).",
+        "examples": [
+          {
+            "IdentifierId": "100002001",
+            "consentDateTime": "2026-11-02T13:35:00-05:00",
+            "createdAt": "2026-11-02T10:35:02-05:00",
+            "customerId": "76299887",
+            "dealerCode": "CL0001",
+            "dealerName": "ABC Motors",
+            "isDeleted": 0,
+            "marketingConsentDEALER": true,
+            "marketingConsentYMDP": false,
+            "personalDataConsent": true,
+            "requestDateTime": "2026-11-02T10:35:00-05:00",
+            "status": "ACEPTADO"
+          }
+        ]
+      },
+      "ConsentLinkInfo": {
+        "properties": {
+          "linkStatus": {
+            "$ref": "#/components/schemas/LinkStatus"
+          },
+          "privacyPolicyUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Privacypolicyurl"
+          },
+          "dealerName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dealername"
+          }
+        },
+        "type": "object",
+        "required": [
+          "linkStatus",
+          "privacyPolicyUrl"
+        ],
+        "title": "ConsentLinkInfo",
+        "description": "Respuesta de GET /api/v1/public/consent-links/{token}.",
+        "examples": [
+          {
+            "dealerName": "ABC Motors",
+            "linkStatus": "VALID",
+            "privacyPolicyUrl": "https://www.yamaha.com.pe/politica-de-privacidad"
+          }
+        ]
+      },
+      "ConsentRequestData": {
+        "properties": {
+          "IdentifierId": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Identifierid"
+          },
+          "customerId": {
+            "type": "string",
+            "title": "Customerid"
+          },
+          "customerName": {
+            "type": "string",
+            "title": "Customername"
+          },
+          "customerPhone": {
+            "type": "string",
+            "title": "Customerphone"
+          },
+          "customerEmail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customeremail"
+          },
+          "dealerName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dealername"
+          },
+          "dealerCode": {
+            "type": "string",
+            "title": "Dealercode"
+          },
+          "requestDateTime": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestdatetime"
+          },
+          "additionalInfo": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Additionalinfo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "IdentifierId",
+          "customerId",
+          "customerName",
+          "customerPhone",
+          "dealerCode"
+        ],
+        "title": "ConsentRequestData",
+        "description": "Contenido de `_request` en POST /api/v1/consents."
+      },
+      "ConsentStatus": {
+        "type": "string",
+        "enum": [
+          "PENDIENTE",
+          "ACEPTADO",
+          "NO_ACEPTADO"
+        ],
+        "title": "ConsentStatus"
+      },
+      "ConsentSubmitRequest": {
+        "properties": {
+          "personalDataConsent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personaldataconsent"
+          },
+          "marketingConsentYMDP": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketingconsentymdp"
+          },
+          "marketingConsentDEALER": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Marketingconsentdealer"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ConsentSubmitRequest",
+        "description": "Body de POST /api/v1/public/consent-links/{token}/submit: los tres checks de la landing.\n\nBooleanos estrictos (true/false de JSON): la respuesta es evidencia legal, no se interpreta \"1\" ni \"sí\". Un check\nen null (o que no se envía) se registra como false.",
+        "examples": [
+          {
+            "marketingConsentDEALER": true,
+            "marketingConsentYMDP": false,
+            "personalDataConsent": true
+          }
+        ]
+      },
+      "ConsentSubmitResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACEPTADO",
+              "NO_ACEPTADO"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ConsentSubmitResponse"
+      },
+      "DealerCreateRequest": {
+        "properties": {
+          "businessName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Businessname"
+          },
+          "ruc": {
+            "type": "string",
+            "title": "Ruc"
+          },
+          "address": {
+            "type": "string",
+            "title": "Address"
+          },
+          "districtUbigeo": {
+            "type": "string",
+            "title": "Districtubigeo"
+          },
+          "contactEmail": {
+            "type": "string",
+            "title": "Contactemail"
+          },
+          "contactPhone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactphone"
+          },
+          "contactName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactname"
+          },
+          "dealerCode": {
+            "type": "string",
+            "title": "Dealercode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "ruc",
+          "address",
+          "districtUbigeo",
+          "contactEmail",
+          "dealerCode"
+        ],
+        "title": "DealerCreateRequest",
+        "description": "POST /dealers."
+      },
+      "DealerDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "dealerCode": {
+            "type": "string",
+            "title": "Dealercode"
+          },
+          "businessName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Businessname"
+          },
+          "ruc": {
+            "type": "string",
+            "title": "Ruc"
+          },
+          "address": {
+            "type": "string",
+            "title": "Address"
+          },
+          "district": {
+            "$ref": "#/components/schemas/CodeName"
+          },
+          "province": {
+            "$ref": "#/components/schemas/CodeName"
+          },
+          "department": {
+            "$ref": "#/components/schemas/CodeName"
+          },
+          "contactEmail": {
+            "type": "string",
+            "title": "Contactemail"
+          },
+          "contactPhone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactphone"
+          },
+          "contactName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactname"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          },
+          "createdBy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "title": "Updatedat"
+          },
+          "updatedBy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "dealerCode",
+          "businessName",
+          "ruc",
+          "address",
+          "district",
+          "province",
+          "department",
+          "contactEmail",
+          "contactPhone",
+          "contactName",
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "updatedBy",
+          "version"
+        ],
+        "title": "DealerDetail"
+      },
+      "DealerUpdateRequest": {
+        "properties": {
+          "businessName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Businessname"
+          },
+          "ruc": {
+            "type": "string",
+            "title": "Ruc"
+          },
+          "address": {
+            "type": "string",
+            "title": "Address"
+          },
+          "districtUbigeo": {
+            "type": "string",
+            "title": "Districtubigeo"
+          },
+          "contactEmail": {
+            "type": "string",
+            "title": "Contactemail"
+          },
+          "contactPhone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactphone"
+          },
+          "contactName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contactname"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "ruc",
+          "address",
+          "districtUbigeo",
+          "contactEmail",
+          "version"
+        ],
+        "title": "DealerUpdateRequest",
+        "description": "PUT /dealers/{dealerId}: reemplazo completo de los campos editables. `dealerCode` no se edita (enviarlo →\n422)."
+      },
+      "DetailResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "DetailResponse"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail",
+          "code"
+        ],
+        "title": "ErrorResponse",
+        "description": "Cuerpo de un BackofficeError (sección 5.8). `field` solo si el error es de un campo (en camelCase)."
+      },
+      "ForgotPasswordRequest": {
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "maxLength": 254,
+            "minLength": 1,
+            "title": "Identifier"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "identifier"
+        ],
+        "title": "ForgotPasswordRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LinkGoneResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "linkStatus": {
+            "type": "string",
+            "enum": [
+              "EXPIRED",
+              "USED"
+            ],
+            "title": "Linkstatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail",
+          "linkStatus"
+        ],
+        "title": "LinkGoneResponse",
+        "description": "410: el enlace venció o ya fue usado."
+      },
+      "LinkNotFoundResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "LinkNotFoundResponse"
+      },
+      "LinkStatus": {
+        "type": "string",
+        "enum": [
+          "VALID",
+          "EXPIRED",
+          "USED"
+        ],
+        "title": "LinkStatus"
+      },
+      "LoginRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 30,
+            "minLength": 1,
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 20,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "Me": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "firstNames": {
+            "type": "string",
+            "title": "Firstnames"
+          },
+          "lastNames": {
+            "type": "string",
+            "title": "Lastnames"
+          },
+          "dni": {
+            "type": "string",
+            "title": "Dni"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "role": {
+            "$ref": "#/components/schemas/CodeName"
+          },
+          "modules": {
+            "items": {
+              "$ref": "#/components/schemas/CodeName"
+            },
+            "type": "array",
+            "title": "Modules"
+          },
+          "mustChangePassword": {
+            "type": "boolean",
+            "title": "Mustchangepassword"
+          },
+          "lastLoginAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastloginat"
+          },
+          "sessionExpiresAt": {
+            "type": "string",
+            "title": "Sessionexpiresat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "firstNames",
+          "lastNames",
+          "dni",
+          "email",
+          "phone",
+          "role",
+          "modules",
+          "mustChangePassword",
+          "lastLoginAt",
+          "sessionExpiresAt"
+        ],
+        "title": "Me",
+        "description": "Usuario con sesión: respuesta de login, GET /auth/me y (B4) GET/PATCH /profile."
+      },
+      "NotFoundResponse": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "NotFoundResponse"
+      },
+      "Page_AuditLogItem_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLogItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "pageSize": {
+            "type": "integer",
+            "title": "Pagesize"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "title": "Page[AuditLogItem]"
+      },
+      "Page_DealerDetail_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DealerDetail"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "pageSize": {
+            "type": "integer",
+            "title": "Pagesize"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "title": "Page[DealerDetail]"
+      },
+      "Page_UserSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UserSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "pageSize": {
+            "type": "integer",
+            "title": "Pagesize"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
+        ],
+        "title": "Page[UserSummary]"
+      },
+      "PasswordPolicyResponse": {
+        "properties": {
+          "minLength": {
+            "type": "integer",
+            "title": "Minlength"
+          },
+          "maxLength": {
+            "type": "integer",
+            "title": "Maxlength"
+          },
+          "requireUppercase": {
+            "type": "boolean",
+            "title": "Requireuppercase"
+          },
+          "requireLowercase": {
+            "type": "boolean",
+            "title": "Requirelowercase"
+          },
+          "requireDigit": {
+            "type": "boolean",
+            "title": "Requiredigit"
+          },
+          "requireSpecial": {
+            "type": "boolean",
+            "title": "Requirespecial"
+          }
+        },
+        "type": "object",
+        "required": [
+          "minLength",
+          "maxLength",
+          "requireUppercase",
+          "requireLowercase",
+          "requireDigit",
+          "requireSpecial"
+        ],
+        "title": "PasswordPolicyResponse"
+      },
+      "PasswordResetRequest": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Token"
+          },
+          "newPassword": {
+            "type": "string",
+            "title": "Newpassword"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token",
+          "newPassword"
+        ],
+        "title": "PasswordResetRequest"
+      },
+      "ProfileUpdateRequest": {
+        "properties": {
+          "firstNames": {
+            "type": "string",
+            "title": "Firstnames"
+          },
+          "lastNames": {
+            "type": "string",
+            "title": "Lastnames"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "currentPassword": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentpassword"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ProfileUpdateRequest",
+        "description": "PATCH /profile (sección 6.4). Todos opcionales: un campo ausente no cambia. `phone: null` lo borra; nombres o\ncorreo en null → 422. `dni`, `username` o `roleCode` → 422 (campos no permitidos). `currentPassword` es\nobligatoria (y correcta) solo si cambia el correo."
+      },
+      "ResetTokenStatusResponse": {
+        "properties": {
+          "tokenStatus": {
+            "type": "string",
+            "title": "Tokenstatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tokenStatus"
+        ],
+        "title": "ResetTokenStatusResponse"
+      },
+      "RoleCode": {
+        "type": "string",
+        "enum": [
+          "ADMIN",
+          "OPERADOR"
+        ],
+        "title": "RoleCode"
+      },
+      "TemporaryPasswordResponse": {
+        "properties": {
+          "temporaryPassword": {
+            "type": "string",
+            "title": "Temporarypassword"
+          }
+        },
+        "type": "object",
+        "required": [
+          "temporaryPassword"
+        ],
+        "title": "TemporaryPasswordResponse",
+        "description": "POST /users/{userId}/reset-password. Se muestra una sola vez."
+      },
+      "UserCreateRequest": {
+        "properties": {
+          "dni": {
+            "type": "string",
+            "title": "Dni"
+          },
+          "firstNames": {
+            "type": "string",
+            "title": "Firstnames"
+          },
+          "lastNames": {
+            "type": "string",
+            "title": "Lastnames"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "roleCode": {
+            "$ref": "#/components/schemas/RoleCode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "dni",
+          "firstNames",
+          "lastNames",
+          "username",
+          "email",
+          "roleCode"
+        ],
+        "title": "UserCreateRequest",
+        "description": "POST /users (B4) y CLI `create-admin` (rol ADMIN)."
+      },
+      "UserCreatedResponse": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserDetail"
+          },
+          "temporaryPassword": {
+            "type": "string",
+            "title": "Temporarypassword"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "temporaryPassword"
+        ],
+        "title": "UserCreatedResponse",
+        "description": "POST /users. La contraseña temporal se muestra una sola vez."
+      },
+      "UserDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "firstNames": {
+            "type": "string",
+            "title": "Firstnames"
+          },
+          "lastNames": {
+            "type": "string",
+            "title": "Lastnames"
+          },
+          "dni": {
+            "type": "string",
+            "title": "Dni"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "role": {
+            "$ref": "#/components/schemas/CodeName"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
+          },
+          "lastLoginAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastloginat"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "mustChangePassword": {
+            "type": "boolean",
+            "title": "Mustchangepassword"
+          },
+          "lockedUntil": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lockeduntil"
+          },
+          "createdAt": {
+            "type": "string",
+            "title": "Createdat"
+          },
+          "createdBy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "title": "Updatedat"
+          },
+          "updatedBy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "firstNames",
+          "lastNames",
+          "dni",
+          "email",
+          "role",
+          "status",
+          "lastLoginAt",
+          "phone",
+          "mustChangePassword",
+          "lockedUntil",
+          "createdAt",
+          "createdBy",
+          "updatedAt",
+          "updatedBy",
+          "version"
+        ],
+        "title": "UserDetail"
+      },
+      "UserRef": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "fullName": {
+            "type": "string",
+            "title": "Fullname"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "fullName"
+        ],
+        "title": "UserRef",
+        "description": "Referencia a un usuario en respuestas (sección 6.1). `fullName` = nombres + apellidos."
+      },
+      "UserStatus": {
+        "type": "string",
+        "enum": [
+          "ACTIVO",
+          "INACTIVO",
+          "BLOQUEADO"
+        ],
+        "title": "UserStatus",
+        "description": "Estado derivado (sección 6.5): INACTIVO si `is_active = false`; si no, BLOQUEADO si `locked_until > now`; si\nno, ACTIVO. No se guarda."
+      },
+      "UserSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "firstNames": {
+            "type": "string",
+            "title": "Firstnames"
+          },
+          "lastNames": {
+            "type": "string",
+            "title": "Lastnames"
+          },
+          "dni": {
+            "type": "string",
+            "title": "Dni"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "role": {
+            "$ref": "#/components/schemas/CodeName"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
+          },
+          "lastLoginAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastloginat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "firstNames",
+          "lastNames",
+          "dni",
+          "email",
+          "role",
+          "status",
+          "lastLoginAt"
+        ],
+        "title": "UserSummary",
+        "description": "Ítem de GET /users."
+      },
+      "UserUpdateRequest": {
+        "properties": {
+          "dni": {
+            "type": "string",
+            "title": "Dni"
+          },
+          "firstNames": {
+            "type": "string",
+            "title": "Firstnames"
+          },
+          "lastNames": {
+            "type": "string",
+            "title": "Lastnames"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          },
+          "roleCode": {
+            "$ref": "#/components/schemas/RoleCode"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "dni",
+          "firstNames",
+          "lastNames",
+          "email",
+          "roleCode",
+          "version"
+        ],
+        "title": "UserUpdateRequest",
+        "description": "PUT /users/{userId}: reemplazo completo de los datos editables (`username` no se edita: enviarlo → 422).\n`phone` ausente o null lo borra."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WhatsAppSendStatus": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/WhatsappStatus"
+          },
+          "errorCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errorcode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "errorCode"
+        ],
+        "title": "WhatsAppSendStatus"
+      },
+      "WhatsappStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "sent",
+          "delivered",
+          "read",
+          "failed",
+          "undelivered"
+        ],
+        "title": "WhatsappStatus",
+        "description": "Valores de MessageStatus de Twilio."
+      }
+    },
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "description": "API Key de KIZUNA",
+        "in": "header",
+        "name": "X-API-Key"
+      },
+      "BackofficeSession": {
+        "type": "apiKey",
+        "description": "Cookie de sesión del BackOffice (HttpOnly; la envía el navegador)",
+        "in": "cookie",
+        "name": "__session"
+      }
+    }
+  }
+}
