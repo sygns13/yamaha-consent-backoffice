@@ -1,0 +1,10 @@
+{
+  // Tests unitarios de src/ (Vitest + Testing Library en jsdom). Pueden usar los tipos de Node.
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "types": ["vite/client", "node"]
+  },
+  "include": ["src"],
+  "exclude": []
+}
