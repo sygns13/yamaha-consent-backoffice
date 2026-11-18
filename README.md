@@ -14,7 +14,7 @@ rol, Gestión de Dealers (con exportación a Excel), Usuarios, Mi perfil y Bitá
 | B6 | Base, autenticación, guardas, Inicio, 403 y 404 | ✅ |
 | B7 | Usuarios, Mi perfil y Bitácora | ✅ |
 | B8 | Dealers | ✅ |
-| B9 | Despliegue (`firebase.json`, VPS) | Pendiente |
+| B9 | Despliegue: `firebase.json`, `.firebaserc`, VPS de pruebas (17/11/2026) | ✅ VPS · Producción pendiente (B9.3) |
 
 ## Stack
 
@@ -83,8 +83,10 @@ npm run api:types
   60 s, enlace de descarga), sesión y manejo global de 401/403, componentes (diálogos, tabla, paginación, búsqueda
   con *debounce*).
 - **Reglas del repositorio** (`tests/`, Node): tipos generados al día, búsqueda del criterio B6.10 (sin
-  `window.alert`/`window.confirm`, sin `fetch` fuera de `src/lib/api.ts`, sin hex en el código) y contraste AA de los
-  tokens de color.
+  `window.alert`/`window.confirm`, sin `fetch` fuera de `src/lib/api.ts`, sin hex en el código), contraste AA de los
+  tokens de color y `firebase.json` coherente con la sección 8.8 (`tests/hosting-headers.test.ts`: las cabeceras de
+  `SECURITY_HEADERS` de `vite.config.ts` más HSTS, el rewrite de `/api/v1/backoffice/**` a Cloud Run y el resto a
+  `index.html`).
 - **e2e** (`e2e/`): la API se simula con `page.route` (`e2e/mock-api.ts`, datos en `e2e/fixtures.ts`); cada test
   corre en los proyectos `mobile` (Pixel 7) y `desktop`. Por pantalla: `login`, `password-recovery`, `session`,
   `users`, `profile`, `audit`, `dealers` y `a11y`. El fixture `api` falla el test si una mutación no lleva `X-Requested-With`, si queda una
@@ -93,6 +95,49 @@ npm run api:types
 
 ## Despliegue
 
-Manual, sin CI/CD. Producción en Firebase Hosting (sitio aparte, rewrite de `/api/v1/backoffice/**` a Cloud Run) y VPS
-de pruebas con nginx: se documenta en la fase B9 (secciones 8.8 y 10 del spec). No ejecutar `firebase deploy` salvo
-pedido explícito.
+Manual, sin CI/CD (sección 10 del spec). No ejecutar `firebase deploy` ni nada en los servidores salvo pedido
+explícito. En ningún entorno hay URL de API en el build: el sitio reenvía `/api/v1/backoffice/*` a la API en su mismo
+origen (sección 2.3), así que la cookie `__session` es de primera parte.
+
+### Producción: Firebase Hosting (sitio `consent-backoffice`)
+
+- `firebase.json` (sección 8.8): `target` `backoffice`, `public` `dist`, rewrite de `/api/v1/backoffice/**` al servicio
+  de Cloud Run `consent-api` y el resto a `/index.html`; cabeceras de seguridad (las de `vite.config.ts` + HSTS);
+  `no-cache` en las rutas y caché de un año en `/assets/**`.
+- `.firebaserc`: alias `prod` y target `backoffice` → sitio `consent-backoffice`.
+- **Placeholders** que se reemplazan en el primer deploy (no hay valores reales todavía):
+  - `firebase.json`: `"region": "<REGION>"` = la región de Cloud Run (PENDIENTE-09; debe ser una región que Firebase
+    Hosting admita para rewrites a Cloud Run).
+  - `.firebaserc`: `<PROJECT_ID>` (dos veces). Si el ID de sitio `consent-backoffice` está tomado, otro.
+- Dominio propio: PENDIENTE-18. Mientras tanto, la URL técnica `https://consent-backoffice.web.app`. Ningún dominio
+  productivo se escribe en este repo.
+
+```powershell
+firebase login
+firebase hosting:sites:create consent-backoffice
+firebase target:apply hosting backoffice consent-backoffice
+npm ci
+npm run build                          # VITE_ENVIRONMENT_LABEL vacío en Producción
+firebase deploy --only hosting:backoffice   # no toca la landing
+```
+
+Verificación (B9.3): cabeceras de la 8.8 en el sitio, `Cache-Control: no-store` en `/api/v1/backoffice/*` (si llega
+`no-cache`, la regla `regex` de `firebase.json` la pisó), cookie `__session` con `Secure` y `/auth/me` → `200` tras
+el login. Rollback: `firebase hosting:rollback` eligiendo este sitio. Orden completo con la API, las migraciones, el
+secreto `SMTP_PASSWORD` y el primer Administrador: `../GUIA_DESPLIEGUE_PRODUCCION_GCP.md`, sección 19.
+
+### VPS de pruebas (Hostinger)
+
+Desplegado el 17/11/2026 en `https://consentimientos-bo-test.bcscode.com` (`../GUIA_DESPLIEGUE_VPS_PRUEBAS.md`,
+sección 13). La imagen se construye **en el VPS** con un `Dockerfile` que vive fuera de este repo
+(`/var/www/consentimientos-test/backoffice/`): etapa `node:24-slim` (`npm ci` + `npm run build` con
+`VITE_ENVIRONMENT_LABEL=PRUEBAS`) y etapa final `nginx:1.28-alpine` con `dist/`. Su `nginx.conf` sirve las mismas
+cabeceras que `firebase.json`, `try_files $uri /index.html`, `/assets/` con caché de un año, `no-cache` en el resto y
+`gzip`. Traefik envía `/api/v1/backoffice/*` de ese dominio al contenedor de la API.
+
+```bash
+# En el VPS, para publicar una versión nueva
+cd /var/www/consentimientos-test
+git -C yamaha-consent-backoffice pull --ff-only
+docker compose build backoffice && docker compose up -d backoffice
+```

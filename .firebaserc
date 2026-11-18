@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "prod": "<PROJECT_ID>"
+  },
+  "targets": {
+    "<PROJECT_ID>": {
+      "hosting": {
+        "backoffice": ["consent-backoffice"]
+      }
+    }
+  }
+}

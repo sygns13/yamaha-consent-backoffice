@@ -7,7 +7,7 @@ BackOffice frontend.
 
 ## Sources of truth
 
-- `../requerimientos/BACKOFFICE_DEALERS.spec.md` (v1.5, in Spanish): section 8 (frontend), Annex A (every visible text),
+- `../requerimientos/BACKOFFICE_DEALERS.spec.md` (v1.6, in Spanish): section 8 (frontend), Annex A (every visible text),
   section 6 (API contract), section 11 (phases B6–B9 and their acceptance criteria). Build one phase at a time.
 - `../REPORTE_CRITERIOS_BACKOFFICE.md`: what is closed and what is open. Read it at the start of every session.
 - `docs/openapi.json`: the real API contract (snapshot of the backend). If it disagrees with a spec example, the
@@ -16,7 +16,13 @@ BackOffice frontend.
 ## Current state
 
 B6 (base, auth, guards, Inicio, 403/404), B7 (Usuarios, Mi perfil, Bitácora) and B8 (Dealers, Excel export) are
-done. B9 (deploy: `firebase.json`, VPS files, guides) is next; run nothing on the VPS or GCP unless asked. Session 5
+done. B9 (session 6, 17/11/2026): deployed to the test VPS (`https://consentimientos-bo-test.bcscode.com`, image built
+there from `f466dce` with a `Dockerfile` + `nginx.conf` that live outside this repo, guide
+`../GUIA_DESPLIEGUE_VPS_PRUEBAS.md` section 13; 19/19 real-browser steps). This repo got `firebase.json` (spec 8.8,
+`"region": "<REGION>"` = PENDIENTE-09), `.firebaserc` (`<PROJECT_ID>`, target `backoffice` → site
+`consent-backoffice`) and `tests/hosting-headers.test.ts`, which compares `firebase.json` with `SECURITY_HEADERS`
+(exported from `vite.config.ts`) + HSTS: change both together. Production (B9.3) is documented in
+`../GUIA_DESPLIEGUE_PRODUCCION_GCP.md` section 19 and never run unless asked. Session 5
 decisions (spec v1.5: 8.2, 8.6, A.1, A.2, section 14):
 Activar/Desbloquear without confirmation; audit "Usuario" filter = all live users from `GET /users` (deleted ones only
 if the URL brings their id; without the `USUARIOS` module, or on a 403, the actors of the loaded results); audit "Entidad" links to the detail; audit defaults to today − 6 … today (Lima) written to
