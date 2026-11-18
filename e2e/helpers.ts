@@ -43,3 +43,20 @@ export async function expectNoHorizontalScroll(page: Page): Promise<void> {
   );
   expect(overflow).toBeLessThanOrEqual(0);
 }
+
+/** Valor (`<dd>`) de un dato en una vista de detalle (`<dl>`), por su etiqueta exacta. */
+export function detailValue(page: Page, label: string) {
+  const exact = new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
+  return page.locator("dt", { hasText: exact }).locator("xpath=following-sibling::dd[1]");
+}
+
+/**
+ * Campo de formulario por su nombre accesible exacto. `getByLabel(..., { exact: true })` compara el texto del
+ * `<label>`, que en los obligatorios incluye el " *" (oculto para lectores de pantalla).
+ */
+export function field(page: Page, name: string) {
+  return page
+    .getByRole("textbox", { name, exact: true })
+    .or(page.getByRole("combobox", { name, exact: true }))
+    .or(page.getByRole("searchbox", { name, exact: true }));
+}

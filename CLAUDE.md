@@ -7,7 +7,7 @@ BackOffice frontend.
 
 ## Sources of truth
 
-- `../requerimientos/BACKOFFICE_DEALERS.spec.md` (v1.4, in Spanish): section 8 (frontend), Annex A (every visible text),
+- `../requerimientos/BACKOFFICE_DEALERS.spec.md` (v1.5, in Spanish): section 8 (frontend), Annex A (every visible text),
   section 6 (API contract), section 11 (phases B6–B9 and their acceptance criteria). Build one phase at a time.
 - `../REPORTE_CRITERIOS_BACKOFFICE.md`: what is closed and what is open. Read it at the start of every session.
 - `docs/openapi.json`: the real API contract (snapshot of the backend). If it disagrees with a spec example, the
@@ -15,11 +15,15 @@ BackOffice frontend.
 
 ## Current state
 
-B6 is done: scaffold, `api.ts`, session + guards, `AuthLayout`/`AppLayout`, Login, Recuperar, Restablecer, Cambiar
-contraseña, Inicio, 403, 404 and base components. B7 (users, profile, audit log) and B8 (dealers) are next. Their
-routes already exist with guards and a `PlaceholderPage` (title only) that B7/B8 replace. Components still to build
-when first needed: DataTable, Pagination, Select, Modal, ConfirmDialog (native `<dialog>` + `showModal()`), Badge,
-EmptyState; `src/lib/download.ts` and `src/lib/validators/{ruc,dni,phone}.ts`.
+B6 (base, auth, guards, Inicio, 403/404), B7 (Usuarios, Mi perfil, Bitácora) and B8 (Dealers, Excel export) are
+done. B9 (deploy: `firebase.json`, VPS files, guides) is next; run nothing on the VPS or GCP unless asked. Session 5
+decisions (spec v1.5: 8.2, 8.6, A.1, A.2, section 14):
+Activar/Desbloquear without confirmation; audit "Usuario" filter = all live users from `GET /users` (deleted ones only
+if the URL brings their id; without the `USUARIOS` module, or on a 403, the actors of the loaded results); audit "Entidad" links to the detail; audit defaults to today − 6 … today (Lima) written to
+the URL with `replace`; every committed filter/sort/page change pushes a history entry; client mobile normalization
+uses prefix `51`; approved texts (pagination, "Todos", "Selecciona", "—", "Menú", "Menú principal", row-action
+`sr-only` suffix, "Detalle del usuario"/"Detalle del dealer", "Usuario eliminado."); Excel export timeout 60 s
+(D3), every other call 15 s.
 
 ## Rules (spec section 8.1 + owner's decisions)
 
@@ -40,7 +44,7 @@ EmptyState; `src/lib/download.ts` and `src/lib/validators/{ruc,dni,phone}.ts`.
 - No inline scripts or styles (the CSP of spec 8.8 forbids them; `vite preview` serves that CSP and the e2e fixture
   fails on any CSP violation). No `style` props.
 - No `localStorage`/`sessionStorage` for session data: the session is only the HttpOnly `__session` cookie.
-- `PENDIENTE-n` items get only their "mientras tanto" + `TODO(PENDIENTE-n)`. None apply to B6.
+- `PENDIENTE-n` items get only their "mientras tanto" + `TODO(PENDIENTE-n)`. None apply to B6–B8.
 - Dependencies: only those of spec 2.4 plus their tooling. Ask the owner before adding anything else.
 - Don't commit unless asked. Never run `firebase deploy` or anything on GCP/the VPS unless asked.
 
@@ -90,13 +94,44 @@ EmptyState; `src/lib/download.ts` and `src/lib/validators/{ruc,dni,phone}.ts`.
 - `Toast` lives above the router (`src/app/providers.tsx`), so it survives navigation.
 - `QueryClient`: `retry: false` everywhere (screens show "Reintentar"). `main.tsx` creates the router and the client
   once, outside React.
+- Lazy routes (`src/app/router.tsx`): each module's routes import one file (`features/users/pages.ts`,
+  `features/profile/ProfilePage`, `features/audit/AuditLogPage`), so a module is one chunk. The `RequireAuth` route
+  has `hydrateFallbackElement`. Dealers: `features/dealers/pages.ts`.
+- Lists (`src/lib/listParams.ts`): filters, sort and page live in the URL. `useUrlParams()` returns `[params, update]`;
+  `update(patch)` pushes a history entry, drops empty values and resets `page` unless the patch has it
+  (`{ replace, keepEmpty }` options). Readers (`readText/readEnum/readPage/readPageSize/readSort`) ignore unknown
+  values; `nextSort` toggles; `useClampPage` jumps back when the URL page is past the end. Queries use
+  `placeholderData: keepPreviousData` and the table gets `busy`.
+- `SearchField`: local text + URL value; calls `onSearch(trimmed)` 300 ms after the last key; "Atrás" updates it.
+- `DataTable`: semantic table, sortable headers (button + `aria-sort`), scroll region (`role="region"`,
+  `tabIndex=0`, **`relative`**: without it, `sr-only` spans in cells escape the scroller and widen the page on mobile),
+  `renderExpanded` for an extra row. Row actions use `actionClasses()` + `<RecordName name=...>` (sr-only suffix).
+- `Modal` (native `<dialog>` + `showModal()`): `open` drives it; Escape calls `onDismiss` (none → `closedby="none"`
+  and it reopens if the browser force-closes); content exists only while open; focus returns to the opener; an
+  element with `data-autofocus` gets the initial focus. `ConfirmDialog` builds on it (focus on "Cancelar"). jsdom has
+  no `showModal()`: `src/test/setup.ts` adds a minimal one.
+- Users (`src/features/users/`): `useUserActions()` owns the confirm dialog + `TemporaryPasswordModal` + mutation for
+  list and detail (returns `run`, `pendingUserId`, `dialogs`); `UserActionButtons` shows actions by status and hides
+  Desactivar/Eliminar/Generar contraseña temporal for the logged-in user. The edit form sends the `version` it was
+  loaded with (a background refetch must not hide a `VERSION_CONFLICT`); "Recargar" refetches and resets.
+- Dealers (`src/features/dealers/`): `UbigeoSelects` (Departamento → Provincia → Distrito; next level disabled until
+  the previous has a value; `mode` "filter" ("Todos", URL) or "form" ("Selecciona", react-hook-form `ref`s via
+  `registered` so the first error gets focus); `useDealerDelete()` (confirm + delete + toast, list and detail).
+  Export: `exportDealers(filters)` in `api.ts` (`request` options `timeoutMs` 60 s, `accept`, `read` → `{blob,
+  filename}` from `Content-Disposition`), then `saveFile()` in `src/lib/download.ts` (temporary hidden link, revoked
+  1 s later). It sends the list's filters and sort, never `page`/`pageSize`.
+- Forms: zod schemas mirror the API with its messages (`src/lib/validators/{dni,phone,ruc,text}.ts`,
+  `src/lib/fieldSchemas.ts`: `requiredField`, `optionalField`, `emptyToNull`). Server 409/422 go to the field with
+  `applyFieldErrors`.
 
 ## Local stack against the real API
 
 Verified on 17/11/2026 (16/16 steps, see the report). The API's `.env` now has the "BackOffice" and "Correo del
 BackOffice" blocks of its `.env.example` (`BACKOFFICE_SESSION_COOKIE_SECURE=false`, Mailpit on `localhost:1025`).
-`consents_db` has one user, `admin` (local test data of spec 5.11.1); if its password is unknown, generate a new
-temporary one with `uv run python -m app.cli.backoffice reset-password --username admin` (from `../yamaha-consent-api`).
+`consents_db` has the owner's `admin` (local test data of spec 5.11.1) and, since session 5 (21/21 real steps, see the
+report), the QA users `qa.admin5` (ADMIN) and `qa.operd0prv` (OPERADOR) plus QA dealers (`QA5-*`); the owner asked to
+keep them. Don't reset `admin`'s password: for a new run, create another admin with `create-admin` (or use
+`reset-password --username qa.admin5`) from `../yamaha-consent-api`, and never print the temporary password.
 Start: `docker compose up -d kizuna-mock mailpit` and `uv run uvicorn app.main:app --port 8000` there, `npm run dev`
 here. Never print the API's `.env`.
 
@@ -117,7 +152,16 @@ here. Never print the API's `.env`.
   - `api.respond(endpoint, ...responses)`: one per call, the last repeats; `"network-error"` aborts.
   - Fixtures: `ADMIN`, `OPERATOR` (only DEALERS), `NEW_ADMIN` (`mustChangePassword`), `POLICY`.
   - Under 1024 px the side menu is collapsed: use `openMainMenu()` from `e2e/helpers.ts` (decides by viewport width).
-  - When adding endpoints in B7/B8, add them to `ENDPOINTS` and `defaultResponse` in the mock.
+  - When adding endpoints, add them to `ENDPOINTS` and `defaultResponse` in the mock. B7 endpoints answer from
+    `e2e/fixtures.ts` (stateless, except `PATCH /profile`, which updates `api.user`); override with `respond`.
+    `RecordedRequest.query` holds the query parameters.
+  - Fields: use `field(page, name)` from `e2e/helpers.ts` (exact accessible name). `getByLabel(..., { exact: true })`
+    fails on required fields because the label text includes the hidden " *". Password inputs have no role: use
+    `getByLabel`. `detailValue(page, label)` reads a `<dd>`.
+  - The audit tests fix the clock (`page.clock.setFixedTime`) for the 7-day default.
+  - `MockResponse` can be `{ status, raw, headers, delayMs }` (the Excel export; `delayMs` shows "Exportando...").
+    The ubigeo fixtures only use INEI codes quoted in the spec/report (150101, 150501, 070101); never invent others.
+    Downloads: `page.waitForEvent("download")`, `download.suggestedFilename()`.
 - Single e2e test: `npx playwright test -g "texto"`; one project: `--project=desktop`.
 - `@types/node` is pinned to the Node 24 line (`~24.19.2`) and only `tsconfig.node.json`/`tsconfig.test.json` load
   it. `typescript` is pinned to `~6.0.3`: typescript-eslint 8 requires `< 6.1`, and `package.json` `overrides` makes

@@ -5,7 +5,7 @@
  */
 import { z } from "zod";
 import type { PasswordPolicy } from "../../lib/api";
-import { REQUIRED_MESSAGE } from "../../lib/errors";
+import { maxLengthMessage, REQUIRED_MESSAGE } from "../../lib/errors";
 import { passwordViolations, policyErrorDetail, type PasswordContext } from "../../lib/validators/password";
 
 /** `LoginRequest` (OpenAPI): `username` hasta 30 y `password` hasta 20 (el máximo de la política, v1.2). */
@@ -15,8 +15,6 @@ const LOGIN_PASSWORD_MAX_LENGTH = 20;
 const IDENTIFIER_MAX_LENGTH = 254;
 
 const PASSWORDS_DO_NOT_MATCH = "Las contraseñas no coinciden.";
-
-const maxLengthMessage = (max: number) => `Debe tener como máximo ${max} caracteres`;
 
 export const loginSchema = z.object({
   username: z.string().trim().min(1, REQUIRED_MESSAGE).max(LOGIN_USERNAME_MAX_LENGTH, maxLengthMessage(LOGIN_USERNAME_MAX_LENGTH)),

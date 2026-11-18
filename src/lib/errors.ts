@@ -6,6 +6,11 @@ export const NETWORK_ERROR_MESSAGE = "No pudimos conectar. Revisa tu conexión e
 /** Texto del traductor de errores de la API para un campo obligatorio (`missing`). */
 export const REQUIRED_MESSAGE = "Campo obligatorio";
 
+/** Texto del traductor de errores de la API para un texto demasiado largo (`string_too_long`). */
+export function maxLengthMessage(max: number): string {
+  return `Debe tener como máximo ${max} caracteres`;
+}
+
 /**
  * Error que lanzan las funciones de TanStack Query con el fallo de `api.ts`. El manejo global (401 y
  * `PASSWORD_CHANGE_REQUIRED`, `src/app/queryClient.ts`) solo funciona si la consulta o mutación lanza este error.

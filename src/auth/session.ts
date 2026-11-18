@@ -42,6 +42,13 @@ export function endSession(client: QueryClient, reason: LoginReason): void {
   client.setQueryData<SessionState>(ME_QUERY_KEY, session);
 }
 
+/** Datos nuevos del usuario actual (p. ej. tras editar Mi perfil, que responde `Me`). */
+export function updateSessionUser(client: QueryClient, me: Me): void {
+  client.setQueryData<SessionState>(ME_QUERY_KEY, (session) =>
+    session?.status === "authenticated" ? { status: "authenticated", me } : session,
+  );
+}
+
 /** Cambia `mustChangePassword` del usuario en caché (403 `PASSWORD_CHANGE_REQUIRED` o cambio de contraseña hecho). */
 export function setMustChangePassword(client: QueryClient, mustChangePassword: boolean): void {
   client.setQueryData<SessionState>(ME_QUERY_KEY, (session) =>

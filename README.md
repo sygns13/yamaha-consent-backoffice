@@ -1,7 +1,7 @@
 # yamaha-consent-backoffice
 
 BackOffice web de Consentimientos Yamaha (Perú): inicio de sesión, recuperación y cambio de contraseña, Inicio por
-rol y, en las fases siguientes, Gestión de Dealers, Usuarios, Mi perfil y Bitácora.
+rol, Gestión de Dealers (con exportación a Excel), Usuarios, Mi perfil y Bitácora.
 
 - Especificación (fuente de verdad): [`../requerimientos/BACKOFFICE_DEALERS.spec.md`](../requerimientos/BACKOFFICE_DEALERS.spec.md), sección 8.
 - Avance por fase y criterio: [`../REPORTE_CRITERIOS_BACKOFFICE.md`](../REPORTE_CRITERIOS_BACKOFFICE.md).
@@ -12,8 +12,8 @@ rol y, en las fases siguientes, Gestión de Dealers, Usuarios, Mi perfil y Bitá
 | Fase | Contenido | Estado |
 |---|---|---|
 | B6 | Base, autenticación, guardas, Inicio, 403 y 404 | ✅ |
-| B7 | Usuarios, Mi perfil y Bitácora | Pendiente (rutas con página provisional) |
-| B8 | Dealers | Pendiente (rutas con página provisional) |
+| B7 | Usuarios, Mi perfil y Bitácora | ✅ |
+| B8 | Dealers | ✅ |
 | B9 | Despliegue (`firebase.json`, VPS) | Pendiente |
 
 ## Stack
@@ -77,13 +77,17 @@ npm run api:types
 
 ## Pruebas
 
-- **Unitarias** (`src/**/*.test.ts(x)`, jsdom): cliente de la API (cabeceras, timeout de 15 s, errores), `next`
-  seguro, política de contraseñas, esquemas zod, sesión y manejo global de 401/403, componentes.
+- **Unitarias** (`src/**/*.test.ts(x)`, jsdom): cliente de la API (cabeceras, timeout de 15 s, errores, query de las
+  listas), `next` seguro, política de contraseñas, validadores espejo de la API (DNI, nombres, usuario, correo,
+  celular, RUC, teléfono de contacto), esquemas zod, filtros en la URL, exportación (nombre del archivo, timeout de
+  60 s, enlace de descarga), sesión y manejo global de 401/403, componentes (diálogos, tabla, paginación, búsqueda
+  con *debounce*).
 - **Reglas del repositorio** (`tests/`, Node): tipos generados al día, búsqueda del criterio B6.10 (sin
   `window.alert`/`window.confirm`, sin `fetch` fuera de `src/lib/api.ts`, sin hex en el código) y contraste AA de los
   tokens de color.
-- **e2e** (`e2e/`): la API se simula con `page.route` (`e2e/mock-api.ts`); cada test corre en los proyectos `mobile`
-  (Pixel 7) y `desktop`. El fixture `api` falla el test si una mutación no lleva `X-Requested-With`, si queda una
+- **e2e** (`e2e/`): la API se simula con `page.route` (`e2e/mock-api.ts`, datos en `e2e/fixtures.ts`); cada test
+  corre en los proyectos `mobile` (Pixel 7) y `desktop`. Por pantalla: `login`, `password-recovery`, `session`,
+  `users`, `profile`, `audit`, `dealers` y `a11y`. El fixture `api` falla el test si una mutación no lleva `X-Requested-With`, si queda una
   petición sin simular, si la CSP bloquea algo o si la página lanza un error. `e2e/a11y.spec.ts` corre axe (WCAG 2.2 AA)
   a 360, 768 y 1280 px y verifica que no haya scroll horizontal.
 

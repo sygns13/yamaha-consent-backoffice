@@ -180,7 +180,8 @@ test.describe("Permisos por rol (B6.7)", () => {
     await expect(cards.nth(2)).toContainText("Consulta las acciones registradas en el sistema.");
 
     await cards.filter({ hasText: "Bitácora de auditoría" }).click();
-    await expect(page).toHaveURL(/\/auditoria$/);
+    // B7 (decisión D5): la bitácora agrega a la URL los 7 días por defecto.
+    await expect(page).toHaveURL(/\/auditoria\?from=\d{4}-\d{2}-\d{2}&to=\d{4}-\d{2}-\d{2}$/);
     await expect(heading(page)).toHaveText("Bitácora de auditoría");
   });
 });

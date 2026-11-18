@@ -1,4 +1,22 @@
 import { test as base, expect, type Page, type Route } from "@playwright/test";
+import {
+  AUDIT_ITEMS,
+  CREATED_DEALER_ID,
+  DEALERS,
+  DEPARTMENTS,
+  DISTRICTS,
+  EXPORT_CONTENT,
+  EXPORT_FILENAME,
+  page,
+  PROVINCES,
+  ROLES,
+  summary,
+  TEMPORARY_PASSWORD,
+  ubigeoOf,
+  USERS,
+  type DealerDetail,
+  type UserDetail,
+} from "./fixtures";
 
 /**
  * API del BackOffice simulada con page.route (sin backend). Mismo origen: el build llama a /api/v1/backoffice/...
@@ -10,9 +28,17 @@ import { test as base, expect, type Page, type Route } from "@playwright/test";
  *   landing). `"network-error"` corta la conexión.
  * - B6.8: toda mutación sin `X-Requested-With: XMLHttpRequest` recibe 403 `CSRF_HEADER_MISSING` y hace fallar el
  *   test al terminar (fixture `api`). Una petición sin endpoint simulado también.
+ * - B7 y B8: usuarios, perfil, bitácora, dealers y ubigeo responden por defecto con los datos de `fixtures.ts` (sin
+ *   estado: cada test simula lo que necesita con `respond`). `RecordedRequest.query` guarda los parámetros de la URL.
  */
 
-export type MockResponse = { status: number; body?: unknown } | "network-error";
+/**
+ * Respuesta simulada. `body` va como JSON; `raw` (con `headers`) es un cuerpo tal cual, p. ej. el Excel. `delayMs`
+ * retrasa la respuesta (para ver estados intermedios como "Exportando...").
+ */
+export type MockResponse =
+  | { status: number; body?: unknown; raw?: string; headers?: Record<string, string>; delayMs?: number }
+  | "network-error";
 
 export interface Me {
   id: string;
@@ -93,6 +119,30 @@ const ENDPOINTS = {
   forgotPassword: ["POST", /^\/auth\/forgot-password$/],
   resetTokenStatus: ["GET", /^\/auth\/password-reset\/[^/]+$/],
   passwordReset: ["POST", /^\/auth\/password-reset$/],
+  // B7: Mi perfil, usuarios y bitácora (secciones 6.4, 6.5 y 6.8).
+  profile: ["GET", /^\/profile$/],
+  profileUpdate: ["PATCH", /^\/profile$/],
+  roles: ["GET", /^\/roles$/],
+  users: ["GET", /^\/users$/],
+  userCreate: ["POST", /^\/users$/],
+  user: ["GET", /^\/users\/[^/]+$/],
+  userUpdate: ["PUT", /^\/users\/[^/]+$/],
+  userDelete: ["DELETE", /^\/users\/[^/]+$/],
+  userActivate: ["POST", /^\/users\/[^/]+\/activate$/],
+  userDeactivate: ["POST", /^\/users\/[^/]+\/deactivate$/],
+  userUnlock: ["POST", /^\/users\/[^/]+\/unlock$/],
+  userResetPassword: ["POST", /^\/users\/[^/]+\/reset-password$/],
+  auditLogs: ["GET", /^\/audit-logs$/],
+  // B8: Dealers y Ubigeo (secciones 6.6 y 6.7). `export` y `lookup` no son ids.
+  dealers: ["GET", /^\/dealers$/],
+  dealerCreate: ["POST", /^\/dealers$/],
+  dealerExport: ["GET", /^\/dealers\/export$/],
+  dealer: ["GET", /^\/dealers\/(?!export$|lookup$)[^/]+$/],
+  dealerUpdate: ["PUT", /^\/dealers\/[^/]+$/],
+  dealerDelete: ["DELETE", /^\/dealers\/[^/]+$/],
+  ubigeoDepartments: ["GET", /^\/ubigeo\/departments$/],
+  ubigeoProvinces: ["GET", /^\/ubigeo\/departments\/[^/]+\/provinces$/],
+  ubigeoDistricts: ["GET", /^\/ubigeo\/provinces\/[^/]+\/districts$/],
 } as const satisfies Record<string, readonly [string, RegExp]>;
 
 export type Endpoint = keyof typeof ENDPOINTS;
@@ -101,6 +151,8 @@ export interface RecordedRequest {
   endpoint: Endpoint | null;
   method: string;
   path: string;
+  /** Parámetros de la query (sin los vacíos, que el cliente no envía). */
+  query: Record<string, string>;
   headers: Record<string, string>;
   body: unknown;
 }
@@ -141,7 +193,8 @@ export class MockApi {
   private async handle(route: Route): Promise<void> {
     const request = route.request();
     const method = request.method();
-    const path = new URL(request.url()).pathname.slice(PREFIX.length);
+    const url = new URL(request.url());
+    const path = url.pathname.slice(PREFIX.length);
     const endpoint =
       (Object.keys(ENDPOINTS) as Endpoint[]).find((name) => {
         const [expectedMethod, pattern] = ENDPOINTS[name];
@@ -152,6 +205,7 @@ export class MockApi {
       endpoint,
       method,
       path,
+      query: Object.fromEntries(url.searchParams),
       headers: await request.allHeaders(),
       body: raw ? (JSON.parse(raw) as unknown) : null,
     };
@@ -162,7 +216,7 @@ export class MockApi {
     }
     if (endpoint === null) return fulfill(route, apiError(404, "NOT_FOUND", "No existe."));
 
-    const response = this.next(endpoint) ?? this.defaultResponse(endpoint);
+    const response = this.next(endpoint) ?? this.defaultResponse(endpoint, recorded);
     this.applySideEffects(endpoint, response);
     return fulfill(route, response);
   }
@@ -175,7 +229,11 @@ export class MockApi {
     return queue[Math.min(index, queue.length - 1)];
   }
 
-  private defaultResponse(endpoint: Endpoint): MockResponse {
+  private defaultResponse(endpoint: Endpoint, request: RecordedRequest): MockResponse {
+    // `/users/{id}/...`, `/dealers/{id}`, `/ubigeo/departments/{code}/provinces`, `/ubigeo/provinces/{code}/districts`.
+    const userId = request.path.split("/")[2] ?? "";
+    const dealerId = userId;
+    const ubigeoCode = request.path.split("/")[3] ?? "";
     switch (endpoint) {
       case "me":
         return this.user ? ok(this.user) : apiError(401, "AUTH_REQUIRED", "Debes iniciar sesión.");
@@ -191,6 +249,62 @@ export class MockApi {
         return ok({ tokenStatus: "VALID" });
       case "login":
         return apiError(401, "INVALID_CREDENTIALS", "Usuario o contraseña incorrectos.");
+      case "profile":
+        return this.user ? ok(this.user) : apiError(401, "AUTH_REQUIRED", "Debes iniciar sesión.");
+      case "profileUpdate": {
+        if (!this.user) return apiError(401, "AUTH_REQUIRED", "Debes iniciar sesión.");
+        // `Me` no trae la contraseña actual que acompaña al cambio de correo.
+        const changes = { ...(request.body as Record<string, unknown>) };
+        delete changes.currentPassword;
+        return ok({ ...this.user, ...changes });
+      }
+      case "roles":
+        return ok(ROLES);
+      case "users":
+        return ok(page(USERS.map(summary)));
+      case "userCreate":
+        return ok({ user: createdUser(request.body), temporaryPassword: TEMPORARY_PASSWORD }, 201);
+      case "user":
+        return userResponse(userId, (user) => user);
+      case "userUpdate":
+        return userResponse(userId, (user) => ({ ...user, ...(request.body as object), version: user.version + 1 }));
+      case "userDelete":
+        return noContent;
+      case "userActivate":
+        return userResponse(userId, (user) => ({ ...user, status: "ACTIVO" }));
+      case "userDeactivate":
+        return userResponse(userId, (user) => ({ ...user, status: "INACTIVO" }));
+      case "userUnlock":
+        return userResponse(userId, (user) => ({ ...user, status: "ACTIVO", lockedUntil: null }));
+      case "userResetPassword":
+        return ok({ temporaryPassword: TEMPORARY_PASSWORD });
+      case "auditLogs":
+        return ok(page(AUDIT_ITEMS));
+      case "dealers":
+        return ok(page(DEALERS));
+      case "dealerCreate":
+        return ok(dealerFromBody(request.body, { id: CREATED_DEALER_ID, version: 1 }), 201);
+      case "dealer":
+        return dealerResponse(dealerId, (dealer) => dealer);
+      case "dealerUpdate":
+        return dealerResponse(dealerId, (dealer) => dealerFromBody(request.body, { ...dealer, version: dealer.version + 1 }));
+      case "dealerDelete":
+        return noContent;
+      case "dealerExport":
+        return {
+          status: 200,
+          raw: EXPORT_CONTENT,
+          headers: {
+            "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "Content-Disposition": `attachment; filename="${EXPORT_FILENAME}"`,
+          },
+        };
+      case "ubigeoDepartments":
+        return ok(DEPARTMENTS);
+      case "ubigeoProvinces":
+        return PROVINCES[ubigeoCode] ? ok(PROVINCES[ubigeoCode]) : apiError(404, "NOT_FOUND", "No existe el departamento.");
+      case "ubigeoDistricts":
+        return DISTRICTS[ubigeoCode] ? ok(DISTRICTS[ubigeoCode]) : apiError(404, "NOT_FOUND", "No existe la provincia.");
     }
   }
 
@@ -198,14 +312,72 @@ export class MockApi {
     if (response === "network-error") return;
     if (endpoint === "login" && response.status === 200) this.user = response.body as Me;
     if (endpoint === "logout" && response.status === 204) this.user = null;
+    if (endpoint === "profileUpdate" && response.status === 200) this.user = response.body as Me;
     if (endpoint === "changePassword" && response.status === 204 && this.user) {
       this.user = { ...this.user, mustChangePassword: false };
     }
   }
 }
 
+const USER_NOT_FOUND = apiError(404, "NOT_FOUND", "No existe el usuario.");
+
+/** La ficha de `fixtures.ts` con ese id (transformada), o 404 como la API. */
+function userResponse(userId: string, transform: (user: UserDetail) => UserDetail): MockResponse {
+  const user = USERS.find((candidate) => candidate.id === userId);
+  return user ? ok(transform(user)) : USER_NOT_FOUND;
+}
+
+export const CREATED_USER_ID = "66666666-6666-4666-8666-666666666666";
+
+/** `UserDetail` de un alta simulada a partir del body del `POST /users`. */
+function createdUser(body: unknown): UserDetail {
+  const request = body as Record<string, string | null>;
+  const role = ROLES.find((candidate) => candidate.code === request.roleCode) ?? ROLES[1]!;
+  return {
+    ...USERS[1]!,
+    id: CREATED_USER_ID,
+    username: request.username ?? "",
+    firstNames: request.firstNames ?? "",
+    lastNames: request.lastNames ?? "",
+    dni: request.dni ?? "",
+    email: request.email ?? "",
+    phone: request.phone ?? null,
+    role,
+    status: "ACTIVO",
+    mustChangePassword: true,
+    lastLoginAt: null,
+    version: 1,
+  };
+}
+
+const DEALER_NOT_FOUND = apiError(404, "NOT_FOUND", "No existe el dealer.");
+
+function dealerResponse(dealerId: string, transform: (dealer: DealerDetail) => DealerDetail): MockResponse {
+  const dealer = DEALERS.find((candidate) => candidate.id === dealerId);
+  return dealer ? ok(transform(dealer)) : DEALER_NOT_FOUND;
+}
+
+/** `DealerDetail` a partir del body de un alta o edición (el distrito determina provincia y departamento). */
+function dealerFromBody(body: unknown, base: Partial<DealerDetail>): DealerDetail {
+  const request = body as Record<string, string | null>;
+  return {
+    ...DEALERS[1]!,
+    ...base,
+    dealerCode: request.dealerCode ?? base.dealerCode ?? "",
+    businessName: request.businessName ?? null,
+    ruc: request.ruc ?? "",
+    address: request.address ?? "",
+    ...ubigeoOf(request.districtUbigeo ?? "150101"),
+    contactEmail: request.contactEmail ?? "",
+    contactPhone: request.contactPhone ?? null,
+    contactName: request.contactName ?? null,
+  };
+}
+
 async function fulfill(route: Route, response: MockResponse): Promise<void> {
   if (response === "network-error") return route.abort("internetdisconnected");
+  if (response.delayMs) await new Promise((resolve) => setTimeout(resolve, response.delayMs));
+  if (response.raw !== undefined) return route.fulfill({ status: response.status, headers: response.headers, body: response.raw });
   if (response.body === undefined) return route.fulfill({ status: response.status });
   return route.fulfill({ status: response.status, json: response.body });
 }
