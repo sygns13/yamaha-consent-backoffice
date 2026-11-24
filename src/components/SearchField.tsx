@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { TextField } from "./TextField";
 
@@ -43,6 +44,7 @@ export function SearchField({ label, value, onSearch }: SearchFieldProps) {
   return (
     <TextField
       type="search"
+      icon={Search}
       label={label}
       value={text}
       maxLength={SEARCH_MAX_LENGTH}

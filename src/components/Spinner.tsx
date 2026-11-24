@@ -1,11 +1,10 @@
+import { LoaderCircle } from "lucide-react";
 import { cx } from "../lib/cx";
 
-/** Indicador giratorio decorativo: el texto ("Cargando...") lo pone quien lo usa. */
+/**
+ * Indicador giratorio decorativo: el texto ("Cargando...") lo pone quien lo usa. Sigue girando con movimiento
+ * reducido: es un indicador esencial (spec de rediseño, 3.5).
+ */
 export function Spinner({ className }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className={cx("size-5 animate-spin text-brand", className)} fill="none">
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  );
+  return <LoaderCircle className={cx("size-5 shrink-0 animate-spin text-primary-text", className)} />;
 }

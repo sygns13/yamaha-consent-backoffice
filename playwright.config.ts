@@ -7,6 +7,8 @@ const PORT = 4323;
 // incluida la CSP.
 export default defineConfig({
   testDir: "e2e",
+  // La galería de capturas (spec de rediseño, 9.5) corre aparte: npm run capturas.
+  testIgnore: "capturas.spec.ts",
   fullyParallel: true,
   reporter: "list",
   use: {

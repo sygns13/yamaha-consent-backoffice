@@ -44,7 +44,7 @@ export function ChangePasswordPage() {
           Por seguridad, debes cambiar tu contraseña temporal antes de continuar.
         </Alert>
       )}
-      <div className="rounded-lg bg-white p-6 shadow-sm">{content}</div>
+      <div className="rounded-lg bg-surface p-6 shadow-sm">{content}</div>
     </div>
   );
 }

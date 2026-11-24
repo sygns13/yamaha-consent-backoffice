@@ -43,7 +43,7 @@ export function DealerEditPage() {
   return (
     <div className="max-w-3xl">
       <PageHeader title={TITLE} />
-      <div className="rounded-lg bg-white p-6 shadow-sm">{content}</div>
+      <div className="rounded-lg bg-surface p-6 shadow-sm">{content}</div>
     </div>
   );
 }
@@ -99,7 +99,7 @@ function DealerEditForm({ dealer, reload }: { dealer: DealerDetail; reload: () =
 
   return (
     <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-6">
-      <p className="text-sm text-slate-700">* Campo obligatorio</p>
+      <p className="text-sm text-fg-muted">* Campo obligatorio</p>
       <DealerFields form={form} fixedDealerCode={dealer.dealerCode} />
       <Alert variant="warning">
         {conflict && (

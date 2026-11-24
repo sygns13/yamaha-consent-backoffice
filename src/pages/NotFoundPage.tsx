@@ -7,7 +7,7 @@ export function NotFoundPage() {
   useDocumentTitle("Página no encontrada");
   return (
     <div className="flex flex-col items-start gap-6">
-      <h1 className="text-xl font-semibold text-slate-900">La página que buscas no existe.</h1>
+      <h1 className="text-xl font-semibold text-fg">La página que buscas no existe.</h1>
       <Link to="/" className={buttonClasses()}>
         Ir al inicio
       </Link>

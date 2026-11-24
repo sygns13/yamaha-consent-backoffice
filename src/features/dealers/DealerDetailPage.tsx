@@ -40,7 +40,7 @@ export function DealerDetailPage() {
   } else {
     const dealer = query.data;
     content = (
-      <div className="flex flex-col gap-6 rounded-lg bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-6 rounded-lg bg-surface p-6 shadow-sm">
         <DealerActionButtons
           dealer={dealer}
           onDelete={deletion.request}

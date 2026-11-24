@@ -69,7 +69,7 @@ export function ResetPasswordPage() {
 
   return (
     <>
-      <h1 className="text-xl font-semibold text-slate-900">{TITLE}</h1>
+      <h1 className="text-xl font-semibold text-fg">{TITLE}</h1>
       <div className="mt-6">{content}</div>
     </>
   );

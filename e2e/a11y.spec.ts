@@ -4,9 +4,13 @@ import { ACTIVE_USER, DEALER_LIMA, LOCKED_USER } from "./fixtures";
 import { expectNoHorizontalScroll, field, fillLogin, heading, openMainMenu } from "./helpers";
 import { ADMIN, apiError, expect, NEW_ADMIN, OPERATOR, test, type MockApi } from "./mock-api";
 
-/** B6.9, B7.6 y B8.6: WCAG 2.2 AA (axe) a 360, 768 y 1280 px, sin scroll horizontal. */
+/**
+ * B6.9, B7.6 y B8.6: WCAG 2.2 AA (axe) a 360, 768 y 1280 px, sin scroll horizontal. Rediseño (9.3, U1.4): cada
+ * escenario corre en tema claro y oscuro (`prefers-color-scheme`).
+ */
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const WIDTHS = [360, 768, 1280];
+const THEMES = ["light", "dark"] as const;
 
 interface Scenario {
   name: string;
@@ -249,19 +253,22 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-for (const width of WIDTHS) {
-  test.describe(`${width} px`, () => {
-    for (const scenario of SCENARIOS) {
-      test(scenario.name, async ({ page, api }) => {
-        await page.setViewportSize({ width, height: 800 });
-        await scenario.open(page, api);
+for (const theme of THEMES) {
+  for (const width of WIDTHS) {
+    test.describe(`${width} px, tema ${theme === "light" ? "claro" : "oscuro"}`, () => {
+      for (const scenario of SCENARIOS) {
+        test(scenario.name, async ({ page, api }) => {
+          await page.emulateMedia({ colorScheme: theme });
+          await page.setViewportSize({ width, height: 800 });
+          await scenario.open(page, api);
 
-        const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
-        expect(results.violations.map(({ id, help, nodes }) => ({ id, help, targets: nodes.map((n) => n.target) }))).toEqual(
-          [],
-        );
-        await expectNoHorizontalScroll(page);
-      });
-    }
-  });
+          const results = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+          expect(results.violations.map(({ id, help, nodes }) => ({ id, help, targets: nodes.map((n) => n.target) }))).toEqual(
+            [],
+          );
+          await expectNoHorizontalScroll(page);
+        });
+      }
+    });
+  }
 }

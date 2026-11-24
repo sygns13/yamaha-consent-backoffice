@@ -78,7 +78,7 @@ export function ProfilePage() {
   return (
     <div className="max-w-3xl">
       <PageHeader title={TITLE} />
-      <div className="rounded-lg bg-white p-6 shadow-sm">{content}</div>
+      <div className="rounded-lg bg-surface p-6 shadow-sm">{content}</div>
     </div>
   );
 }
@@ -117,7 +117,7 @@ function ProfileForm({ profile, onDone }: { profile: Me; onDone: () => void }) {
 
   return (
     <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-6">
-      <p className="text-sm text-slate-700">* Campo obligatorio</p>
+      <p className="text-sm text-fg-muted">* Campo obligatorio</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField label="Nombres" requiredMark autoComplete="given-name" error={errors.firstNames?.message} {...form.register("firstNames")} />
         <TextField label="Apellidos" requiredMark autoComplete="family-name" error={errors.lastNames?.message} {...form.register("lastNames")} />

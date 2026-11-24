@@ -11,17 +11,17 @@ export function HomePage() {
   return (
     <>
       <PageHeader title={`Hola, ${me.firstNames}`} />
-      <p className="-mt-3 mb-6 text-slate-700">Selecciona un módulo para comenzar.</p>
+      <p className="-mt-3 mb-6 text-fg-muted">Selecciona un módulo para comenzar.</p>
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {me.modules.map(({ code, name }) =>
           isKnownModule(code) ? (
             <li key={code}>
               <Link
                 to={MODULES[code].path}
-                className="block h-full rounded-lg border border-slate-200 bg-white p-5 shadow-sm hover:border-brand"
+                className="block h-full rounded-lg border border-border bg-surface p-5 shadow-sm hover:border-primary-text/40"
               >
-                <span className="block text-lg font-semibold text-brand">{name}</span>
-                <span className="mt-1 block text-sm text-slate-700">{MODULES[code].description}</span>
+                <span className="block text-lg font-semibold text-primary-text">{name}</span>
+                <span className="mt-1 block text-sm text-fg-muted">{MODULES[code].description}</span>
               </Link>
             </li>
           ) : null,

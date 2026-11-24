@@ -57,7 +57,7 @@ export function UserEditPage() {
   return (
     <div className="max-w-3xl">
       <PageHeader title={TITLE} />
-      <div className="rounded-lg bg-white p-6 shadow-sm">{content}</div>
+      <div className="rounded-lg bg-surface p-6 shadow-sm">{content}</div>
     </div>
   );
 }
@@ -126,7 +126,7 @@ function UserEditForm({ user, roles, reload }: UserEditFormProps) {
 
   return (
     <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-6">
-      <p className="text-sm text-slate-700">* Campo obligatorio</p>
+      <p className="text-sm text-fg-muted">* Campo obligatorio</p>
       <UserFields form={form} roles={roles} fixedUsername={user.username} roleDisabled={isSelf} />
       <Alert variant="warning">
         {conflict && (

@@ -43,7 +43,7 @@ export function UserDetailPage() {
   } else {
     const user = query.data;
     content = (
-      <div className="flex flex-col gap-6 rounded-lg bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-6 rounded-lg bg-surface p-6 shadow-sm">
         <UserActionButtons
           user={user}
           isSelf={user.id === me.id}

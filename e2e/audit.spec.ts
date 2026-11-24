@@ -74,7 +74,8 @@ test.describe("Bitácora (B7.4)", () => {
     await field(page, "Desde").fill("2026-11-01");
     await expect(page).toHaveURL(/from=2026-11-01/);
 
-    expect(api.calls("auditLogs").at(-1)?.query).toEqual({
+    // La URL cambia antes de que salga la petición: esperar a que llegue.
+    await expect.poll(() => api.calls("auditLogs").at(-1)?.query).toEqual({
       from: "2026-11-01",
       to: "2026-11-17",
       actorUserId: ACTIVE_USER.id,
@@ -99,7 +100,7 @@ test.describe("Bitácora (B7.4)", () => {
     await field(page, "Desde").fill("");
     await expect(page).toHaveURL(/\?from=&to=2026-11-17$/);
     await expect(field(page, "Desde")).toHaveValue("");
-    expect(api.calls("auditLogs").at(-1)?.query).toEqual({ to: "2026-11-17", page: "1", pageSize: "20" });
+    await expect.poll(() => api.calls("auditLogs").at(-1)?.query).toEqual({ to: "2026-11-17", page: "1", pageSize: "20" });
   });
 
   test("Desde posterior a Hasta → mensaje del Anexo A.3 sin llamar a la API", async ({ page, api }) => {

@@ -41,13 +41,13 @@ export function ForgotPasswordPage() {
 
   return (
     <>
-      <h1 className="text-xl font-semibold text-slate-900">Recuperar contraseña</h1>
+      <h1 className="text-xl font-semibold text-fg">Recuperar contraseña</h1>
       <Alert variant="success" live="polite" className="mt-4">
         {sentDetail}
       </Alert>
       {sentDetail === null && (
         <>
-          <p className="mt-2 text-sm text-slate-700">
+          <p className="mt-2 text-sm text-fg-muted">
             Ingresa tu usuario o tu correo y te enviaremos un enlace para crear una nueva contraseña.
           </p>
           <form noValidate onSubmit={(event) => void onSubmit(event)} className="mt-6 flex flex-col gap-4">

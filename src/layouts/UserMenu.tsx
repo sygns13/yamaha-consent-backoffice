@@ -1,10 +1,11 @@
+import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useLogout } from "../auth/useLogout";
 import type { Me } from "../lib/api";
 
 const ITEM_CLASSES =
-  "flex min-h-11 w-full items-center px-4 text-left text-sm text-slate-800 hover:bg-surface disabled:opacity-60";
+  "flex min-h-11 w-full items-center px-4 text-left text-sm text-fg hover:bg-surface-muted disabled:opacity-60";
 
 /**
  * Menú de usuario (sección 8.5): nombre y rol; Mi perfil, Cambiar contraseña y Cerrar sesión. Es un botón que
@@ -46,22 +47,20 @@ export function UserMenu({ me }: { me: Me }) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
-        className="flex min-h-11 max-w-48 items-center gap-2 rounded-md px-2 text-left hover:bg-surface sm:max-w-72"
+        className="flex min-h-11 max-w-48 items-center gap-2 rounded-md px-2 text-left hover:bg-surface-muted sm:max-w-72"
       >
         <span className="flex min-w-0 flex-col">
-          <span className="truncate text-sm font-medium text-slate-900">
+          <span className="truncate text-sm font-medium text-fg">
             {me.firstNames} {me.lastNames}
           </span>
-          <span className="truncate text-xs text-slate-700">{me.role.name}</span>
+          <span className="truncate text-xs text-fg-muted">{me.role.name}</span>
         </span>
-        <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4 shrink-0 text-slate-700" fill="currentColor">
-          <path d="M5.5 7.5L10 12l4.5-4.5z" />
-        </svg>
+        <ChevronDown className="size-4 shrink-0 text-fg-muted" />
       </button>
       <ul
         id={panelId}
         hidden={!open}
-        className="absolute right-0 z-40 mt-1 w-56 rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+        className="absolute right-0 z-40 mt-1 w-56 rounded-md border border-border bg-surface py-1 shadow-lg"
       >
         <li>
           <Link to="/perfil" onClick={close} className={ITEM_CLASSES}>

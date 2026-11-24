@@ -26,7 +26,7 @@ const restrictedProperties = (allowFetch) => [
 ];
 
 export default defineConfig([
-  globalIgnores(["dist", "dist-e2e", "test-results", "playwright-report", "src/lib/api-schema.d.ts"]),
+  globalIgnores(["dist", "dist-e2e", "test-results", "playwright-report", "capturas", "src/lib/api-schema.d.ts"]),
   {
     files: ["**/*.{ts,tsx}"],
     extends: [js.configs.recommended, tseslint.configs.recommendedTypeChecked],

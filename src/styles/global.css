@@ -1,30 +1,154 @@
 @import "tailwindcss";
+@import "@fontsource-variable/figtree";
 
 /*
- * Tokens de color (sección 8.1). Sin valores hex en el markup: un color nuevo se crea primero aquí.
- * brand, brand-dark, surface, danger y danger-surface: copiados de la landing (yamaha-consent-landing).
- * success y warning: texto sobre su fondo con contraste AA (tests/theme-contrast.test.ts).
- * Los grises son la paleta slate de Tailwind, como en la landing.
+ * Sistema de diseño del rediseño visual (requerimientos/BACKOFFICE_REDISENO_UI.spec.md, sección 3).
+ * - La paleta por defecto de Tailwind está desactivada (`--color-*: initial`): el único color posible es un token.
+ * - Tema claro aquí; el oscuro (D2, según el sistema operativo) redefine los mismos tokens en @layer base.
+ * - Sin `@theme inline`: las utilidades leen var(--color-…), así el bloque oscuro las cambia.
+ * - Exactamente un hex de 6 dígitos, en minúsculas, por token y por tema (tests/theme-contrast.test.ts).
+ * - Sin valores hex en src/ (TS/TSX): un color nuevo se crea primero aquí, en ambos temas.
  */
 @theme {
-  --color-brand: #3224ff;
-  --color-brand-dark: #2418d6;
-  --color-surface: #f2f3f6;
+  --color-*: initial;
 
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  /* Ranura de marca (D7): igual a --font-sans hasta que se resuelva PENDIENTE-40 (licencia web de "Estricta"). */
+  /* TODO(PENDIENTE-40): con licencia web, "Estricta" + su @font-face (spec de rediseño, sección 11). */
+  --font-display: "Figtree Variable", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+
+  /* Tema claro (columna "Claro" de la 3.2) */
+  --color-canvas: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f5f9;
+  --color-surface-raised: #ffffff;
+  --color-border: #e2e8f0;
+  --color-border-strong: #7c879b;
+  --color-fg: #0f172a;
+  --color-fg-muted: #475569;
+  --color-fg-subtle: #5f6b7e;
+  --color-primary: #003087;
+  --color-primary-hover: #001f5c;
+  --color-on-primary: #ffffff;
+  --color-primary-text: #003087;
+  --color-primary-subtle: #e9eef8;
+  --color-brand-panel: #003087;
+  --color-ring: #0040b0;
+  --color-accent: #e60012;
   --color-danger: #b91c1c;
   --color-danger-surface: #fef2f2;
-
+  --color-danger-fill: #b91c1c;
+  --color-danger-fill-hover: #991b1b;
+  --color-on-danger: #ffffff;
   --color-success: #15803d;
   --color-success-surface: #f0fdf4;
-
   --color-warning: #b45309;
   --color-warning-surface: #fffbeb;
+  --color-overlay: #0f172a;
+
+  /* Sombras (3.4). En oscuro: tarjetas dark:shadow-none; menús y diálogos, las variantes -dark. */
+  --shadow-xs: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
+  --shadow-popover: 0 4px 6px -1px rgb(15 23 42 / 0.08), 0 12px 24px -6px rgb(15 23 42 / 0.14);
+  --shadow-dialog: 0 24px 48px -12px rgb(15 23 42 / 0.28);
+  --shadow-popover-dark: 0 12px 24px -6px rgb(0 0 0 / 0.5);
+  --shadow-dialog-dark: 0 24px 48px -12px rgb(0 0 0 / 0.6);
 }
 
 @layer base {
-  /* Foco visible en todo elemento enfocable con teclado (sección 8.7). */
+  :root {
+    color-scheme: light dark;
+  }
+
+  /* Tema oscuro (D2): mismos nombres, otros valores (columna "Oscuro" de la 3.2). */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-canvas: #0b1120;
+      --color-surface: #111a2b;
+      --color-surface-muted: #1a2436;
+      --color-surface-raised: #172133;
+      --color-border: #243047;
+      --color-border-strong: #64718a;
+      --color-fg: #e2e8f0;
+      --color-fg-muted: #a7b3c5;
+      --color-fg-subtle: #8d9ab0;
+      --color-primary: #2f5fd0;
+      --color-primary-hover: #3d6fe3;
+      --color-on-primary: #ffffff;
+      --color-primary-text: #93b4ff;
+      --color-primary-subtle: #17264a;
+      --color-brand-panel: #0a1633;
+      --color-ring: #93b4ff;
+      --color-accent: #e60012;
+      --color-danger: #f87171;
+      --color-danger-surface: #2a1416;
+      --color-danger-fill: #c62828;
+      --color-danger-fill-hover: #d63a3a;
+      --color-on-danger: #ffffff;
+      --color-success: #4ade80;
+      --color-success-surface: #0e2a1a;
+      --color-warning: #fbbf24;
+      --color-warning-surface: #2a1f08;
+      --color-overlay: #020617;
+    }
+  }
+
+  html {
+    /* El foco no queda bajo la cabecera fija (WCAG 2.4.11). */
+    scroll-padding-top: 4.5rem;
+  }
+
+  /* Con un <dialog> modal abierto la página no se desplaza (como en la landing). */
+  html:has(dialog[open]) {
+    overflow: hidden;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-fg antialiased;
+  }
+
+  /* Foco visible en todo elemento enfocable con teclado (3.6). Siempre outline: en forced-colors las sombras no se ven. */
   :focus-visible {
-    outline: 2px solid var(--color-brand);
+    outline: 2px solid var(--color-ring);
     outline-offset: 2px;
+  }
+
+  /*
+   * Movimiento reducido (3.5): además de `motion-reduce:transition-none` en cada componente, ninguna transición dura
+   * algo (incluidas las entradas con @starting-style). `!important` en una capa anterior gana a las utilidades. Las
+   * animaciones (spinner) no se tocan: el spinner es un indicador esencial; el skeleton usa `motion-reduce:animate-none`.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      transition-duration: 0s !important;
+    }
+  }
+}
+
+@layer components {
+  /*
+   * Panel de "Más acciones" (4.23), solo CSS. Por defecto, hoja inferior a todo el ancho (bajo `sm` o sin anchor
+   * positioning). Desde `sm`, con soporte, anclado bajo el disparador abierto (`anchor-name: --row-actions`), alineado
+   * a su borde derecho y dado vuelta hacia arriba si no cabe abajo. Reemplaza el centrado del popover del navegador.
+   */
+  .row-actions-panel {
+    inset: auto 0.5rem 0.5rem 0.5rem;
+    width: auto;
+    margin: 0;
+  }
+
+  @supports (anchor-name: --a) {
+    @media (width >= 40rem) {
+      .row-actions-panel {
+        position-anchor: --row-actions;
+        position-area: bottom span-left;
+        position-try-fallbacks: flip-block;
+        inset: auto;
+        width: max-content;
+        margin-block: 0.25rem;
+      }
+    }
   }
 }

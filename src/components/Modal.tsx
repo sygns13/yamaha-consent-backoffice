@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { cx } from "../lib/cx";
 
 interface ModalProps {
   open: boolean;
@@ -13,6 +14,8 @@ interface ModalProps {
   children?: ReactNode;
   /** Botones al pie. El que lleve `data-autofocus` recibe el foco al abrir. */
   actions: ReactNode;
+  /** Ícono decorativo junto al título (p. ej. el aviso de una confirmación destructiva). */
+  icon?: ReactNode;
 }
 
 /**
@@ -20,7 +23,7 @@ interface ModalProps {
  * elemento que lo tenía (sección 8.7). El contenido solo existe mientras está abierto (la contraseña temporal no
  * queda en el DOM). El estado `open` manda: si el navegador lo cierra por su cuenta, se avisa o se vuelve a abrir.
  */
-export function Modal({ open, title, description, onDismiss, children, actions }: ModalProps) {
+export function Modal({ open, title, description, onDismiss, children, actions, icon }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const openRef = useRef(open);
   const dismissRef = useRef(onDismiss);
@@ -68,20 +71,30 @@ export function Modal({ open, title, description, onDismiss, children, actions }
         if (dismissRef.current) dismissRef.current();
         else dialogRef.current?.showModal();
       }}
-      className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-lg bg-white p-0 text-slate-900 shadow-xl backdrop:bg-slate-900/50"
+      // Spec de rediseño, 4.7: entrada con opacidad y escala (@starting-style), sin JavaScript de animación.
+      className={cx(
+        "m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-border bg-surface-raised p-0 text-fg",
+        "shadow-dialog dark:shadow-dialog-dark backdrop:bg-overlay/60 backdrop:backdrop-blur-[2px]",
+        "transition duration-200 ease-out transition-discrete starting:open:scale-95 starting:open:opacity-0",
+        "motion-reduce:transition-none motion-reduce:transform-none",
+      )}
     >
       {open && (
         <div className="flex flex-col gap-4 p-6">
-          <h2 id={titleId} className="text-lg font-semibold text-slate-900">
-            {title}
-          </h2>
+          <div className="flex items-start gap-3">
+            {icon}
+            <h2 id={titleId} className={cx("min-w-0 text-lg font-semibold tracking-tight text-fg", icon !== undefined && "pt-1.5")}>
+              {title}
+            </h2>
+          </div>
           {description && (
-            <div id={descriptionId} className="text-sm text-slate-800">
+            <div id={descriptionId} className="text-sm text-fg-muted">
               {description}
             </div>
           )}
           {children}
-          <div className="flex flex-wrap justify-end gap-2">{actions}</div>
+          {/* El orden del DOM no cambia ("Cancelar" primero): en móvil, apilados a todo el ancho. */}
+          <div className="flex flex-col gap-2 pt-2 *:w-full sm:flex-row sm:justify-end sm:*:w-auto">{actions}</div>
         </div>
       )}
     </dialog>

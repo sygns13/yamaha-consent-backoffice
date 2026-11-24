@@ -1,3 +1,4 @@
+import { CircleCheck, CircleExclamationPoint, type LucideIcon } from "lucide-react";
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { cx } from "../lib/cx";
 
@@ -17,9 +18,10 @@ const ToastContext = createContext<ToastApi | null>(null);
 
 const TOAST_DURATION_MS = 6_000;
 
-const VARIANTS: Record<ToastVariant, string> = {
-  success: "border-success bg-success-surface text-success",
-  error: "border-danger bg-danger-surface text-danger",
+// Spec de rediseño, 4.6: tarjeta neutra con ícono de color; la variante no depende solo del color (el ícono cambia).
+const VARIANTS: Record<ToastVariant, { icon: LucideIcon; classes: string }> = {
+  success: { icon: CircleCheck, classes: "text-success" },
+  error: { icon: CircleExclamationPoint, classes: "text-danger" },
 };
 
 /**
@@ -42,19 +44,27 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         role="status"
-        className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4"
+        // Abajo al centro en móvil; abajo a la derecha desde `sm`.
+        className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4 sm:items-end"
       >
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={cx(
-              "pointer-events-auto w-full max-w-md rounded-md border-l-4 px-4 py-3 text-sm shadow-md",
-              VARIANTS[toast.variant],
-            )}
-          >
-            {toast.message}
-          </div>
-        ))}
+        {toasts.map((toast) => {
+          const { icon: Icon, classes } = VARIANTS[toast.variant];
+          return (
+            <div
+              key={toast.id}
+              className={cx(
+                "pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border border-border bg-surface-raised",
+                "px-4 py-3 text-sm text-fg shadow-popover dark:shadow-popover-dark",
+                // Entrada (3.5): opacidad y desplazamiento con @starting-style, sin JavaScript de animación.
+                "transition duration-200 ease-out starting:translate-y-1 starting:opacity-0",
+                "motion-reduce:transition-none motion-reduce:transform-none",
+              )}
+            >
+              <Icon className={cx("mt-0.5 size-4 shrink-0", classes)} />
+              <span className="min-w-0 flex-1">{toast.message}</span>
+            </div>
+          );
+        })}
       </div>
     </ToastContext>
   );

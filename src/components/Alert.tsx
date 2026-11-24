@@ -1,12 +1,14 @@
+import { CircleCheck, CircleExclamationPoint, TriangleExclamationPoint, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cx } from "../lib/cx";
 
 export type AlertVariant = "error" | "success" | "warning";
 
-const VARIANTS: Record<AlertVariant, string> = {
-  error: "border-danger bg-danger-surface text-danger",
-  success: "border-success bg-success-surface text-success",
-  warning: "border-warning bg-warning-surface text-warning",
+// Spec de rediseño, 4.4: la variante no depende solo del color (el ícono cambia de forma).
+const VARIANTS: Record<AlertVariant, { classes: string; icon: LucideIcon }> = {
+  error: { classes: "border-danger/30 bg-danger-surface text-danger", icon: CircleExclamationPoint },
+  success: { classes: "border-success/30 bg-success-surface text-success", icon: CircleCheck },
+  warning: { classes: "border-warning/30 bg-warning-surface text-warning", icon: TriangleExclamationPoint },
 };
 
 interface AlertProps {
@@ -23,9 +25,13 @@ interface AlertProps {
 }
 
 export function Alert({ variant, children, live = "assertive", className }: AlertProps) {
+  const { classes, icon: Icon } = VARIANTS[variant];
   const box =
     children === undefined || children === null || children === false ? null : (
-      <div className={cx("rounded-md border-l-4 px-4 py-3 text-sm", VARIANTS[variant], className)}>{children}</div>
+      <div className={cx("flex items-start gap-3 rounded-lg border px-4 py-3 text-sm", classes, className)}>
+        <Icon className="mt-0.5 size-4 shrink-0" />
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
     );
   if (live === false) return box;
   return <div role={live === "assertive" ? "alert" : "status"}>{box}</div>;

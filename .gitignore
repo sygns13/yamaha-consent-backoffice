@@ -17,3 +17,5 @@ npm-debug.log*
 dist-e2e/
 test-results/
 playwright-report/
+# galería de capturas (spec de rediseño, 9.5)
+capturas/

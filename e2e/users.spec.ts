@@ -324,7 +324,8 @@ test.describe("Lista: filtros, orden y página en la URL (B7.4)", () => {
     await expect(page).toHaveURL(/pageSize=50/);
     await expect(page).not.toHaveURL(/page=2/);
 
-    expect(api.calls("users").at(-1)?.query).toEqual({
+    // La URL cambia antes de que salga la petición: esperar a que llegue.
+    await expect.poll(() => api.calls("users").at(-1)?.query).toEqual({
       q: "perez",
       roleCode: "OPERADOR",
       status: "BLOQUEADO",

@@ -79,7 +79,7 @@ export function LoginPage() {
 
   return (
     <>
-      <h1 className="text-xl font-semibold text-slate-900">Iniciar sesión</h1>
+      <h1 className="text-xl font-semibold text-fg">Iniciar sesión</h1>
       <div className="mt-4 empty:hidden">
         {reason === "sesion-expirada" && (
           <Alert variant="warning" live={false}>

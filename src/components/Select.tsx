@@ -1,4 +1,6 @@
+import { ChevronDown } from "lucide-react";
 import { useId, type ComponentProps } from "react";
+import { cx } from "../lib/cx";
 import { FieldShell } from "./FieldShell";
 import { fieldDescriptionIds } from "./fieldIds";
 import { INPUT_CLASSES } from "./styles";
@@ -25,20 +27,23 @@ export function Select({ label, options, placeholder, hint, error, requiredMark,
   const ids = fieldDescriptionIds(selectId, { hint, error });
   return (
     <FieldShell inputId={selectId} label={label} hint={hint} error={error} requiredMark={requiredMark}>
-      <select
-        id={selectId}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={ids.describedBy}
-        className={INPUT_CLASSES}
-        {...props}
-      >
-        {placeholder !== undefined && <option value="">{placeholder}</option>}
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <div className="relative">
+        <select
+          id={selectId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={ids.describedBy}
+          className={cx(INPUT_CLASSES, "appearance-none pr-9")}
+          {...props}
+        >
+          {placeholder !== undefined && <option value="">{placeholder}</option>}
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-fg-subtle" />
+      </div>
     </FieldShell>
   );
 }

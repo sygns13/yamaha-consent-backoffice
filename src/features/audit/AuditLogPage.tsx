@@ -118,7 +118,7 @@ export function AuditLogPage() {
         item.actor ? (
           <span className="flex flex-col">
             <span>{item.actor.fullName}</span>
-            <span className="text-xs text-slate-600">{item.actor.username}</span>
+            <span className="text-xs text-fg-muted">{item.actor.username}</span>
           </span>
         ) : (
           EMPTY_VALUE
@@ -174,7 +174,10 @@ export function AuditLogPage() {
           busy={logsQuery.isPlaceholderData}
           renderExpanded={(item) =>
             expanded.has(item.id) && item.details !== null ? (
-              <pre id={detailId(item.id)} className="font-mono text-xs break-all whitespace-pre-wrap text-slate-900">
+              <pre
+                id={detailId(item.id)}
+                className="rounded-lg border border-border bg-surface p-3 font-mono text-xs break-all whitespace-pre-wrap text-fg"
+              >
                 {JSON.stringify(item.details, null, 2)}
               </pre>
             ) : null
@@ -248,7 +251,7 @@ function EntityCell({ item }: { item: AuditLogItem }) {
       <span>{type?.label ?? item.entityType}</span>
       {item.entityId !== null &&
         (type ? (
-          <Link to={`${type.path}/${item.entityId}`} className="font-mono text-xs break-all text-brand underline underline-offset-2">
+          <Link to={`${type.path}/${item.entityId}`} className="font-mono text-xs break-all text-primary-text underline underline-offset-2">
             {item.entityId}
           </Link>
         ) : (

@@ -16,6 +16,16 @@ export function userRefLabel(ref: UserRef | null | undefined): string {
   return ref ? `${ref.fullName} (${ref.username})` : EMPTY_VALUE;
 }
 
+/**
+ * Iniciales del avatar (helper visual, spec de rediseño 4.21): primera letra de los nombres y primera de los
+ * apellidos, en mayúsculas. Cuenta puntos de código (no unidades UTF-16) y normaliza a NFC, así una tilde escrita
+ * como carácter combinado no queda sola.
+ */
+export function initials(person: { firstNames: string; lastNames: string }): string {
+  const first = (text: string) => Array.from(text.normalize("NFC").trim())[0] ?? "";
+  return `${first(person.firstNames)}${first(person.lastNames)}`.toLocaleUpperCase("es-PE");
+}
+
 export function yesNo(value: boolean): string {
   return value ? "Sí" : "No";
 }

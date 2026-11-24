@@ -44,3 +44,43 @@ describe("reglas del repositorio en src/ (B6.10)", () => {
     expect(matches(/#[0-9a-fA-F]{3,8}\b/, code)).toEqual([]);
   });
 });
+
+// Spec de rediseño, 9.2: reglas del sistema de diseño. Tailwind ignora en silencio las clases que no generan CSS
+// (con `--color-*: initial`, `bg-white` ya no existe), por eso se buscan en el código.
+const PALETTE_UTILITIES =
+  "bg|text|border|ring|outline|divide|fill|stroke|from|via|to|shadow|placeholder|decoration|accent|caret";
+const PALETTE_COLORS =
+  "slate|zinc|gray|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|" +
+  "fuchsia|pink|rose|white|black";
+
+describe("reglas del sistema de diseño en src/ (rediseño, 9.2)", () => {
+  it("sin clases de la paleta de Tailwind (con o sin número, con cualquier variante delante)", () => {
+    const palette = new RegExp(`(^|[^\\w-])(${PALETTE_UTILITIES})-(${PALETTE_COLORS})(-\\d{2,3})?(/\\d+)?(?![\\w-])`);
+    expect(matches(palette)).toEqual([]);
+  });
+
+  it("sin los tokens eliminados brand y brand-dark", () => {
+    expect(matches(/-brand(-dark)?(?![\w-])/)).toEqual([]);
+  });
+
+  it("sin la prop style en TSX (CSP de la 8.8)", () => {
+    const tsx = files.filter((file) => file.path.endsWith(".tsx"));
+    expect(matches(/\bstyle=[{"]/, tsx)).toEqual([]);
+  });
+
+  it("sin transition-all (anima medidas y provoca saltos)", () => {
+    expect(matches(/\btransition-all\b/)).toEqual([]);
+  });
+
+  it("dark: solo para sombras, nunca con una utilidad de color", () => {
+    expect(matches(/\bdark:(bg|text|border|ring|outline|fill|stroke)-/)).toEqual([]);
+  });
+
+  it("sin <svg> escritos a mano (todos los íconos son de lucide, desde U2)", () => {
+    expect(matches(/<svg\b/)).toEqual([]);
+  });
+
+  it("íconos de lucide importados uno por uno", () => {
+    expect(matches(/import\s+\*\s+as\s+\w+\s+from\s+["']lucide-react|lucide-react\/dynamic|\bDynamicIcon\b/)).toEqual([]);
+  });
+});

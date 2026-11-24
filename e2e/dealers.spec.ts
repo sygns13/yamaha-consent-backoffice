@@ -277,7 +277,8 @@ test.describe("Lista: búsqueda, filtros, orden y página en la URL (B8.4)", () 
     await page.getByRole("button", { name: "Siguiente" }).click();
     await expect(page).toHaveURL(/page=2/);
 
-    expect(api.calls("dealers").at(-1)?.query).toEqual({
+    // La URL cambia antes de que salga la petición: esperar a que llegue (antes, una carrera en mobile).
+    await expect.poll(() => api.calls("dealers").at(-1)?.query).toEqual({
       q: "abc motors",
       departmentCode: "15",
       provinceCode: "1501",

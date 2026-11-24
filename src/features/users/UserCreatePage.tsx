@@ -61,7 +61,7 @@ export function UserCreatePage() {
   else {
     content = (
       <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-6">
-        <p className="text-sm text-slate-700">* Campo obligatorio</p>
+        <p className="text-sm text-fg-muted">* Campo obligatorio</p>
         <UserFields form={form} roles={rolesQuery.data} />
         <Alert variant="error">{formError}</Alert>
         <div className="flex flex-wrap gap-2">
@@ -79,7 +79,7 @@ export function UserCreatePage() {
   return (
     <div className="max-w-3xl">
       <PageHeader title={TITLE} />
-      <div className="rounded-lg bg-white p-6 shadow-sm">{content}</div>
+      <div className="rounded-lg bg-surface p-6 shadow-sm">{content}</div>
       <TemporaryPasswordModal
         open={created !== null}
         username={created?.username ?? ""}

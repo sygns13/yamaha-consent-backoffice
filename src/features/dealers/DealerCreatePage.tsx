@@ -52,9 +52,9 @@ export function DealerCreatePage() {
   return (
     <div className="max-w-3xl">
       <PageHeader title={TITLE} />
-      <div className="rounded-lg bg-white p-6 shadow-sm">
+      <div className="rounded-lg bg-surface p-6 shadow-sm">
         <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-6">
-          <p className="text-sm text-slate-700">* Campo obligatorio</p>
+          <p className="text-sm text-fg-muted">* Campo obligatorio</p>
           <DealerFields form={form} />
           <Alert variant="error">{formError}</Alert>
           <div className="flex flex-wrap gap-2">

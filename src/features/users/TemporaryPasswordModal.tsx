@@ -1,3 +1,4 @@
+import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
@@ -38,10 +39,12 @@ export function TemporaryPasswordModal({ open, username, password, onClose }: Te
         </Button>
       }
     >
-      <p className="text-sm text-slate-800">Usuario: {username}</p>
-      <div className="flex flex-wrap items-center gap-3">
-        <code className="rounded-md bg-surface px-3 py-2 font-mono text-lg break-all text-slate-900 select-all">{password}</code>
-        <Button variant="secondary" onClick={copy}>
+      <p className="text-sm text-fg">Usuario: {username}</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <code className="min-w-0 flex-1 rounded-lg border border-border bg-surface-muted px-3 py-2 font-mono text-lg tracking-wide break-all text-fg select-all">
+          {password}
+        </code>
+        <Button variant="secondary" icon={copied ? Check : Copy} onClick={copy}>
           {copied ? "Copiada" : "Copiar"}
         </Button>
       </div>
