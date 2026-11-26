@@ -2,9 +2,16 @@
 @import "@fontsource-variable/figtree";
 
 /*
+ * `dark:` (solo sombras) sigue el tema aplicado en <html data-theme>, no la media query: así respeta la elección del
+ * botón de la cabecera (spec de rediseño v1.3, 3.2).
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
  * Sistema de diseño del rediseño visual (requerimientos/BACKOFFICE_REDISENO_UI.spec.md, sección 3).
  * - La paleta por defecto de Tailwind está desactivada (`--color-*: initial`): el único color posible es un token.
- * - Tema claro aquí; el oscuro (D2, según el sistema operativo) redefine los mismos tokens en @layer base.
+ * - Tema claro aquí; el oscuro redefine los mismos tokens en @layer base bajo `:root[data-theme="dark"]`. El atributo
+ *   lo pone public/theme-init.js antes del primer pintado (D2: el del sistema; v1.3: o el elegido con el botón).
  * - Sin `@theme inline`: las utilidades leen var(--color-…), así el bloque oscuro las cambia.
  * - Exactamente un hex de 6 dígitos, en minúsculas, por token y por tema (tests/theme-contrast.test.ts).
  * - Sin valores hex en src/ (TS/TSX): un color nuevo se crea primero aquí, en ambos temas.
@@ -56,41 +63,41 @@
 }
 
 @layer base {
+  /* Controles nativos (barras de desplazamiento, selects) en el tema aplicado. */
   :root {
-    color-scheme: light dark;
+    color-scheme: light;
   }
 
   /* Tema oscuro (D2): mismos nombres, otros valores (columna "Oscuro" de la 3.2). */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --color-canvas: #0b1120;
-      --color-surface: #111a2b;
-      --color-surface-muted: #1a2436;
-      --color-surface-raised: #172133;
-      --color-border: #243047;
-      --color-border-strong: #64718a;
-      --color-fg: #e2e8f0;
-      --color-fg-muted: #a7b3c5;
-      --color-fg-subtle: #8d9ab0;
-      --color-primary: #2f5fd0;
-      --color-primary-hover: #3d6fe3;
-      --color-on-primary: #ffffff;
-      --color-primary-text: #93b4ff;
-      --color-primary-subtle: #17264a;
-      --color-brand-panel: #0a1633;
-      --color-ring: #93b4ff;
-      --color-accent: #e60012;
-      --color-danger: #f87171;
-      --color-danger-surface: #2a1416;
-      --color-danger-fill: #c62828;
-      --color-danger-fill-hover: #d63a3a;
-      --color-on-danger: #ffffff;
-      --color-success: #4ade80;
-      --color-success-surface: #0e2a1a;
-      --color-warning: #fbbf24;
-      --color-warning-surface: #2a1f08;
-      --color-overlay: #020617;
-    }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --color-canvas: #0b1120;
+    --color-surface: #111a2b;
+    --color-surface-muted: #1a2436;
+    --color-surface-raised: #172133;
+    --color-border: #243047;
+    --color-border-strong: #64718a;
+    --color-fg: #e2e8f0;
+    --color-fg-muted: #a7b3c5;
+    --color-fg-subtle: #8d9ab0;
+    --color-primary: #2f5fd0;
+    --color-primary-hover: #3d6fe3;
+    --color-on-primary: #ffffff;
+    --color-primary-text: #93b4ff;
+    --color-primary-subtle: #17264a;
+    --color-brand-panel: #0a1633;
+    --color-ring: #93b4ff;
+    --color-accent: #e60012;
+    --color-danger: #f87171;
+    --color-danger-surface: #2a1416;
+    --color-danger-fill: #c62828;
+    --color-danger-fill-hover: #d63a3a;
+    --color-on-danger: #ffffff;
+    --color-success: #4ade80;
+    --color-success-surface: #0e2a1a;
+    --color-warning: #fbbf24;
+    --color-warning-surface: #2a1f08;
+    --color-overlay: #020617;
   }
 
   html {

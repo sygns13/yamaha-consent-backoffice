@@ -30,8 +30,14 @@ interface DataTableProps<T> {
   busy?: boolean;
 }
 
-/** Celda fija a la derecha: fondo opaco (el hover de la fila llega a la celda) y borde izquierdo bajo `xl`. */
-const STICKY_END = "sticky right-0 border-l border-border xl:border-l-0";
+/**
+ * Celda fija a la derecha: fondo opaco (el hover de la fila llega a la celda) y una línea a la izquierda. Es un
+ * pseudo-elemento y no `border-l`: con `border-collapse` (preflight) la tabla pinta el borde en la posición natural de
+ * la celda, no donde queda fija. La 4.16 la quitaba desde `xl`, pero con el menú lateral las listas de Usuarios y
+ * Dealers también se desplazan a 1280 px (U3): la línea queda en todos los anchos.
+ */
+const STICKY_END =
+  "sticky right-0 before:pointer-events-none before:absolute before:inset-y-0 before:left-0 before:w-px before:bg-border";
 
 /**
  * Tabla semántica (sección 8.7): `<th scope="col">`, columnas ordenables con un botón y `aria-sort`. En pantallas

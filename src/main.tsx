@@ -4,7 +4,10 @@ import { RouterProvider } from "react-router/dom";
 import { AppProviders } from "./app/providers";
 import { createQueryClient } from "./app/queryClient";
 import { createAppRouter } from "./app/router";
+import { initTheme } from "./lib/theme";
 import "./styles/global.css";
+
+initTheme();
 
 // Una sola instancia de cada uno por pestaña (fuera de React, para que StrictMode no los cree dos veces).
 const queryClient = createQueryClient();

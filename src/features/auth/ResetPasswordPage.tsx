@@ -69,7 +69,7 @@ export function ResetPasswordPage() {
 
   return (
     <>
-      <h1 className="text-xl font-semibold text-fg">{TITLE}</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight text-fg">{TITLE}</h1>
       <div className="mt-6">{content}</div>
     </>
   );
@@ -124,7 +124,7 @@ function ResetPasswordForm({
   });
 
   return (
-    <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
+    <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-5">
       <PasswordField
         label="Nueva contraseña"
         autoComplete="new-password"
@@ -132,7 +132,10 @@ function ResetPasswordForm({
         error={errors.newPassword?.message}
         {...form.register("newPassword")}
       />
-      <PasswordPolicyChecklist id={checklistId} policy={policy} password={newPassword} />
+      {/* Recuadro del checklist (spec de rediseño, 6.1). */}
+      <div className="rounded-lg bg-surface-muted p-3">
+        <PasswordPolicyChecklist id={checklistId} policy={policy} password={newPassword} />
+      </div>
       <PasswordField
         label="Confirmar contraseña"
         autoComplete="new-password"
@@ -140,7 +143,7 @@ function ResetPasswordForm({
         {...form.register("confirmPassword")}
       />
       <Alert variant="error">{formError}</Alert>
-      <Button type="submit" loading={mutation.isPending} loadingText="Guardando...">
+      <Button type="submit" loading={mutation.isPending} loadingText="Guardando..." className="w-full">
         Guardar contraseña
       </Button>
     </form>

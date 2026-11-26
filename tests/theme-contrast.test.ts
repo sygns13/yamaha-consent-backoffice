@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-// Spec de rediseño, 3.2 y 9.1: tokens de color del tema claro (@theme) y del oscuro (bloque prefers-color-scheme:
-// dark), con el mismo juego de nombres, un hex de 6 dígitos en minúsculas cada uno y contraste WCAG 2.x verificado.
+// Spec de rediseño, 3.2 y 9.1: tokens de color del tema claro (@theme) y del oscuro (bloque :root[data-theme="dark"],
+// v1.3), con el mismo juego de nombres, un hex de 6 dígitos en minúsculas cada uno y contraste WCAG 2.x verificado.
 // Sin comentarios: solo cuentan las declaraciones.
 const css = readFileSync(new URL("../src/styles/global.css", import.meta.url), "utf8")
   .replace(/\r\n/g, "\n")
@@ -48,7 +48,7 @@ function block(pattern: RegExp, name: string): string {
 
 const BLOCKS: Record<Theme, string> = {
   light: block(/@theme\s*\{([\s\S]*?)\n\}/, "@theme"),
-  dark: block(/@media \(prefers-color-scheme: dark\)\s*\{\s*:root\s*\{([\s\S]*?)\}/, "oscuro"),
+  dark: block(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\}/, "oscuro"),
 };
 
 /** Cada declaración `--color-*` del bloque, en orden (para detectar repetidas). */

@@ -1,4 +1,5 @@
 import type { UseFormReturn } from "react-hook-form";
+import { CardSection, CardSections } from "../../components/Card";
 import { Select } from "../../components/Select";
 import { TextField } from "../../components/TextField";
 import type { CodeName } from "../../lib/api";
@@ -16,54 +17,61 @@ interface UserFieldsProps {
   roleDisabled?: boolean;
 }
 
-/** Campos del formulario de usuario en el orden de la sección 8.6 (textos del Anexo A.2). */
+/**
+ * Campos del formulario de usuario en el orden de la sección 8.6 (textos del Anexo A.2), agrupados en "Datos
+ * personales" y "Cuenta y contacto" (spec de rediseño, P2 y Anexo A). El orden de los campos no cambia.
+ */
 export function UserFields({ form, roles, fixedUsername, roleDisabled = false }: UserFieldsProps) {
   const { errors } = form.formState;
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <TextField
-        label="DNI"
-        requiredMark
-        inputMode="numeric"
-        autoComplete="off"
-        error={errors.dni?.message}
-        {...form.register("dni")}
-      />
-      <TextField label="Nombres" requiredMark autoComplete="off" error={errors.firstNames?.message} {...form.register("firstNames")} />
-      <TextField label="Apellidos" requiredMark autoComplete="off" error={errors.lastNames?.message} {...form.register("lastNames")} />
-      {fixedUsername === undefined ? (
+    <CardSections>
+      <CardSection title="Datos personales">
         <TextField
-          label="Usuario"
+          label="DNI"
           requiredMark
-          hint={USERNAME_HINT}
+          inputMode="numeric"
           autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-          error={errors.username?.message}
-          {...form.register("username")}
+          error={errors.dni?.message}
+          {...form.register("dni")}
         />
-      ) : (
-        <TextField label="Usuario" hint={USERNAME_HINT} value={fixedUsername} disabled readOnly />
-      )}
-      <TextField
-        label="Correo"
-        type="email"
-        requiredMark
-        autoComplete="off"
-        spellCheck={false}
-        error={errors.email?.message}
-        {...form.register("email")}
-      />
-      <TextField label="Celular" type="tel" autoComplete="off" error={errors.phone?.message} {...form.register("phone")} />
-      <Select
-        label="Rol"
-        requiredMark
-        placeholder="Selecciona"
-        options={roles.map((role) => ({ value: role.code, label: role.name }))}
-        disabled={roleDisabled}
-        error={errors.roleCode?.message}
-        {...form.register("roleCode")}
-      />
-    </div>
+        <TextField label="Nombres" requiredMark autoComplete="off" error={errors.firstNames?.message} {...form.register("firstNames")} />
+        <TextField label="Apellidos" requiredMark autoComplete="off" error={errors.lastNames?.message} {...form.register("lastNames")} />
+      </CardSection>
+      <CardSection title="Cuenta y contacto">
+        {fixedUsername === undefined ? (
+          <TextField
+            label="Usuario"
+            requiredMark
+            hint={USERNAME_HINT}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            error={errors.username?.message}
+            {...form.register("username")}
+          />
+        ) : (
+          <TextField label="Usuario" hint={USERNAME_HINT} value={fixedUsername} disabled readOnly />
+        )}
+        <TextField
+          label="Correo"
+          type="email"
+          requiredMark
+          autoComplete="off"
+          spellCheck={false}
+          error={errors.email?.message}
+          {...form.register("email")}
+        />
+        <TextField label="Celular" type="tel" autoComplete="off" error={errors.phone?.message} {...form.register("phone")} />
+        <Select
+          label="Rol"
+          requiredMark
+          placeholder="Selecciona"
+          options={roles.map((role) => ({ value: role.code, label: role.name }))}
+          disabled={roleDisabled}
+          error={errors.roleCode?.message}
+          {...form.register("roleCode")}
+        />
+      </CardSection>
+    </CardSections>
   );
 }

@@ -1,13 +1,16 @@
+import { Plus } from "lucide-react";
 import { Link } from "react-router";
+import { BACK_TO_HOME, MODULES } from "../../app/modules";
 import { useMe } from "../../auth/useMe";
+import { Card } from "../../components/Card";
 import { DataTable, type Column } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
 import { PageHeader } from "../../components/PageHeader";
 import { Pagination } from "../../components/Pagination";
 import { SearchField } from "../../components/SearchField";
 import { Select } from "../../components/Select";
+import { TableSkeleton } from "../../components/Skeleton";
 import { buttonClasses } from "../../components/styles";
 import type { UserListParams, UserSummary } from "../../lib/api";
 import { formatDateTime } from "../../lib/dates";
@@ -61,9 +64,9 @@ export function UsersListPage() {
   useClampPage(usersQuery.data, listParams.page, listParams.pageSize, update);
 
   const columns: Column<UserSummary>[] = [
-    { key: "username", header: "Usuario", sortKey: "username", cell: (user) => user.username, className: "whitespace-nowrap" },
+    { key: "username", header: "Usuario", sortKey: "username", cell: (user) => user.username, className: "whitespace-nowrap font-medium" },
     { key: "name", header: "Nombres y apellidos", sortKey: "lastNames", cell: (user) => fullName(user) },
-    { key: "dni", header: "DNI", cell: (user) => user.dni, className: "whitespace-nowrap" },
+    { key: "dni", header: "DNI", cell: (user) => user.dni, className: "whitespace-nowrap tabular-nums" },
     { key: "email", header: "Correo", cell: (user) => user.email },
     { key: "role", header: "Rol", cell: (user) => user.role.name, className: "whitespace-nowrap" },
     { key: "status", header: "Estado", cell: (user) => <UserStatusBadge status={user.status} /> },
@@ -72,7 +75,7 @@ export function UsersListPage() {
       header: "Último acceso",
       sortKey: "lastLoginAt",
       cell: (user) => formatDateTime(user.lastLoginAt),
-      className: "whitespace-nowrap",
+      className: "whitespace-nowrap tabular-nums",
     },
     {
       key: "actions",
@@ -85,7 +88,8 @@ export function UsersListPage() {
           disabled={actions.pendingUserId === user.id}
         />
       ),
-      className: "min-w-64",
+      // Fija a la derecha (spec de rediseño, P4): visible aunque la tabla se desplace en móvil.
+      sticky: "end",
     },
   ];
 
@@ -100,7 +104,8 @@ export function UsersListPage() {
       />
     );
   } else if (usersQuery.isPending) {
-    content = <LoadingState />;
+    // Primera carga: skeleton (4.10). Un cambio de filtro o de página mantiene los datos anteriores con `busy`.
+    content = <TableSkeleton label={TITLE} columns={columns.map((column) => column.header)} />;
   } else if (usersQuery.data.items.length === 0) {
     content = <EmptyState />;
   } else {
@@ -131,33 +136,38 @@ export function UsersListPage() {
     <>
       <PageHeader
         title={TITLE}
+        description={MODULES.USUARIOS.description}
+        back={BACK_TO_HOME}
         actions={
-          <Link to="/usuarios/nuevo" className={buttonClasses()}>
+          <Link to="/usuarios/nuevo" className={buttonClasses("primary", "w-full sm:w-auto")}>
+            <Plus className="size-4 shrink-0" />
             Nuevo usuario
           </Link>
         }
       />
-      <div className="mb-4 grid gap-4 md:grid-cols-[2fr_1fr_1fr]">
-        <SearchField
-          label="Buscar por DNI, nombre, usuario o correo"
-          value={listParams.q ?? ""}
-          onSearch={(q) => update({ q })}
-        />
-        <Select
-          label="Rol"
-          placeholder="Todos"
-          options={(rolesQuery.data ?? []).map((role) => ({ value: role.code, label: role.name }))}
-          value={listParams.roleCode ?? ""}
-          onChange={(event) => update({ roleCode: event.target.value })}
-        />
-        <Select
-          label="Estado"
-          placeholder="Todos"
-          options={USER_STATUSES.map((status) => ({ value: status, label: USER_STATUS_LABELS[status] }))}
-          value={listParams.status ?? ""}
-          onChange={(event) => update({ status: event.target.value })}
-        />
-      </div>
+      <Card padding="sm" className="mb-6">
+        <div className="grid gap-3 sm:gap-4 md:grid-cols-[2fr_1fr_1fr]">
+          <SearchField
+            label="Buscar por DNI, nombre, usuario o correo"
+            value={listParams.q ?? ""}
+            onSearch={(q) => update({ q })}
+          />
+          <Select
+            label="Rol"
+            placeholder="Todos"
+            options={(rolesQuery.data ?? []).map((role) => ({ value: role.code, label: role.name }))}
+            value={listParams.roleCode ?? ""}
+            onChange={(event) => update({ roleCode: event.target.value })}
+          />
+          <Select
+            label="Estado"
+            placeholder="Todos"
+            options={USER_STATUSES.map((status) => ({ value: status, label: USER_STATUS_LABELS[status] }))}
+            value={listParams.status ?? ""}
+            onChange={(event) => update({ status: event.target.value })}
+          />
+        </div>
+      </Card>
       {content}
       {actions.dialogs}
     </>

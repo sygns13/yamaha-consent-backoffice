@@ -1,15 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Pencil } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { updateSessionUser } from "../../auth/session";
 import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { DetailList } from "../../components/DetailList";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
 import { PageHeader } from "../../components/PageHeader";
 import { PasswordField } from "../../components/PasswordField";
+import { DetailSkeleton } from "../../components/Skeleton";
 import { TextField } from "../../components/TextField";
 import { useToast } from "../../components/Toast";
 import { getProfile, updateProfile, type Me, type ProfileUpdateRequest } from "../../lib/api";
@@ -50,35 +52,45 @@ export function ProfilePage() {
 
   let content;
   if (query.isError) content = <ErrorState onRetry={() => void query.refetch()} />;
-  else if (query.isPending) content = <LoadingState />;
-  else if (editing) content = <ProfileForm profile={query.data} onDone={closeForm} />;
+  else if (query.isPending) {
+    // Primera carga (4.10).
+    content = (
+      <Card>
+        <DetailSkeleton items={8} columns={2} />
+      </Card>
+    );
+  } else if (editing) content = <ProfileForm profile={query.data} onDone={closeForm} />;
   else {
     const me = query.data;
+    // Spec de rediseño, 6.5: datos en 2 columnas y "Editar" debajo.
     content = (
-      <div className="flex flex-col gap-6">
-        <DetailList
-          items={[
-            { label: "Usuario", value: me.username },
-            { label: "DNI", value: me.dni },
-            { label: "Nombres", value: me.firstNames },
-            { label: "Apellidos", value: me.lastNames },
-            { label: "Correo", value: me.email },
-            { label: "Celular", value: displayValue(me.phone) },
-            { label: "Rol", value: me.role.name },
-            { label: "Último acceso", value: formatDateTime(me.lastLoginAt) },
-          ]}
-        />
-        <Button ref={editButtonRef} variant="secondary" className="self-start" onClick={() => setEditing(true)}>
-          Editar
-        </Button>
-      </div>
+      <Card>
+        <div className="flex flex-col gap-6">
+          <DetailList
+            columns={2}
+            items={[
+              { label: "Usuario", value: me.username },
+              { label: "DNI", value: me.dni },
+              { label: "Nombres", value: me.firstNames },
+              { label: "Apellidos", value: me.lastNames },
+              { label: "Correo", value: me.email },
+              { label: "Celular", value: displayValue(me.phone) },
+              { label: "Rol", value: me.role.name },
+              { label: "Último acceso", value: formatDateTime(me.lastLoginAt) },
+            ]}
+          />
+          <Button ref={editButtonRef} variant="secondary" icon={Pencil} className="self-start" onClick={() => setEditing(true)}>
+            Editar
+          </Button>
+        </div>
+      </Card>
     );
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-4xl">
       <PageHeader title={TITLE} />
-      <div className="rounded-lg bg-surface p-6 shadow-sm">{content}</div>
+      {content}
     </div>
   );
 }
@@ -115,42 +127,52 @@ function ProfileForm({ profile, onDone }: { profile: Me; onDone: () => void }) {
     mutation.mutate(toProfileRequest(values, profile.email));
   });
 
+  // Spec de rediseño, 6.4: una sola sección, sin encabezado; el pie con las acciones.
   return (
-    <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-6">
-      <p className="text-sm text-fg-muted">* Campo obligatorio</p>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <TextField label="Nombres" requiredMark autoComplete="given-name" error={errors.firstNames?.message} {...form.register("firstNames")} />
-        <TextField label="Apellidos" requiredMark autoComplete="family-name" error={errors.lastNames?.message} {...form.register("lastNames")} />
-        <TextField
-          label="Correo"
-          type="email"
-          requiredMark
-          autoComplete="email"
-          spellCheck={false}
-          error={errors.email?.message}
-          {...form.register("email")}
-        />
-        <TextField label="Celular" type="tel" autoComplete="tel-national" error={errors.phone?.message} {...form.register("phone")} />
-        {askPassword && (
-          <PasswordField
-            label="Contraseña actual"
-            requiredMark
-            hint="Para cambiar tu correo, ingresa tu contraseña actual."
-            autoComplete="current-password"
-            error={errors.currentPassword?.message}
-            {...form.register("currentPassword")}
-          />
-        )}
-      </div>
-      <Alert variant="error">{formError}</Alert>
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" loading={mutation.isPending} loadingText="Guardando...">
-          Guardar
-        </Button>
-        <Button variant="secondary" disabled={mutation.isPending} onClick={onDone}>
-          Cancelar
-        </Button>
-      </div>
+    <form noValidate onSubmit={(event) => void onSubmit(event)}>
+      <Card
+        footer={
+          <>
+            <Button type="submit" loading={mutation.isPending} loadingText="Guardando...">
+              Guardar
+            </Button>
+            <Button variant="secondary" disabled={mutation.isPending} onClick={onDone}>
+              Cancelar
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-6">
+          <p className="text-xs text-fg-muted">* Campo obligatorio</p>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <TextField label="Nombres" requiredMark autoComplete="given-name" error={errors.firstNames?.message} {...form.register("firstNames")} />
+            <TextField label="Apellidos" requiredMark autoComplete="family-name" error={errors.lastNames?.message} {...form.register("lastNames")} />
+            <TextField
+              label="Correo"
+              type="email"
+              requiredMark
+              autoComplete="email"
+              spellCheck={false}
+              error={errors.email?.message}
+              {...form.register("email")}
+            />
+            <TextField label="Celular" type="tel" autoComplete="tel-national" error={errors.phone?.message} {...form.register("phone")} />
+            {askPassword && (
+              <PasswordField
+                label="Contraseña actual"
+                requiredMark
+                hint="Para cambiar tu correo, ingresa tu contraseña actual."
+                autoComplete="current-password"
+                error={errors.currentPassword?.message}
+                {...form.register("currentPassword")}
+              />
+            )}
+          </div>
+        </div>
+        <Alert variant="error" className="mt-6">
+          {formError}
+        </Alert>
+      </Card>
     </form>
   );
 }

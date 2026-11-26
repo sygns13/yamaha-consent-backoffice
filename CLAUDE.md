@@ -7,11 +7,16 @@ BackOffice frontend.
 
 ## Sources of truth
 
-- `../requerimientos/BACKOFFICE_DEALERS.spec.md` (v1.6, in Spanish): section 8 (frontend), Annex A (every visible text),
+- `../requerimientos/BACKOFFICE_DEALERS.spec.md` (v1.8, in Spanish; v1.7 points 8.1, 8.5 and 8.6 to the redesign spec; v1.8 adds the redesign v1.3 texts to A.2b): section 8 (frontend), Annex A (every visible text),
   section 6 (API contract), section 11 (phases B6–B9 and their acceptance criteria). Build one phase at a time.
 - `../REPORTE_CRITERIOS_BACKOFFICE.md`: what is closed and what is open. Read it at the start of every session.
 - `docs/openapi.json`: the real API contract (snapshot of the backend). If it disagrees with a spec example, the
   snapshot wins for types; tell the owner.
+- **Visual layer:** `../requerimientos/BACKOFFICE_REDISENO_UI.spec.md` (v1.3, in Spanish) wins for everything visual
+  (tokens, layouts, components, icons; its Annex A adds the only new texts). It replaces base spec 8.1 (color tokens)
+  and 8.5 (layouts). Progress: `../REPORTE_CRITERIOS_BACKOFFICE_UI.md` (read its "Decisiones de U2/U3/U4" before
+  touching components). Never change logic, API calls, query keys, guards, zod schemas, URL params, focus handling or
+  texts for a visual reason; if a visual change needs it, ask the owner.
 
 ## Current state
 
@@ -31,6 +36,10 @@ uses prefix `51`; approved texts (pagination, "Todos", "Selecciona", "—", "Men
 `sr-only` suffix, "Detalle del usuario"/"Detalle del dealer", "Usuario eliminado."); Excel export timeout 60 s
 (D3), every other call 15 s.
 
+Redesign (branch `feat/rediseno-ui`): U0–U2 committed (`f3326d8`); U3 and U4 done on 24/11/2026 (uncommitted), except
+U4.5 (owner's visual approval of `capturas/despues/`). U5 (test VPS, guide 13.13) only on request; Production is out of
+scope (PENDIENTE-41).
+
 ## Rules (spec section 8.1 + owner's decisions)
 
 - React + Vite + strict TypeScript (`noUncheckedIndexedAccess`). SPA, no SSR, no component library.
@@ -44,9 +53,29 @@ uses prefix `51`; approved texts (pagination, "Todos", "Selecciona", "—", "Men
   ~499 kB and Vite warns at 500 kB.
 - Never `window.alert` / `window.confirm` (ESLint + test). Confirmations → `ConfirmDialog`; messages → `Alert` or
   `Toast`. Don't even write those words in `src/` comments: the B6.10 search would flag them.
-- Tailwind CSS 4 with `@theme` tokens in `src/styles/global.css` (`brand`, `brand-dark`, `surface`, `danger`,
-  `danger-surface`, `success`, `success-surface`, `warning`, `warning-surface`). No hex in `src/` code; a new color
-  becomes a token first and gets an AA check in `tests/theme-contrast.test.ts`. Neutrals use Tailwind's `slate-*`.
+- Tailwind CSS 4 with semantic tokens in `src/styles/global.css` (redesign spec 3.2: `canvas`, `surface`,
+  `surface-muted`, `surface-raised`, `border`, `border-strong`, `fg`, `fg-muted`, `fg-subtle`, `primary`,
+  `primary-hover`, `on-primary`, `primary-text`, `primary-subtle`, `brand-panel`, `ring`, `accent`, `danger*`,
+  `on-danger`, `success*`, `warning*`, `overlay`). `--color-*: initial` disables Tailwind's palette (`bg-white`,
+  `text-slate-700` generate nothing). Light values in `@theme`, dark values (same names) in `:root[data-theme="dark"]`
+  (redesign v1.3, owner's request of 26/11/2026): the OS theme until the user picks one with the header button
+  (`src/layouts/ThemeToggle.tsx`), remembered in `localStorage` key `backoffice-theme` (a screen preference, not
+  session data). `public/theme-init.js` (external sync script: the CSP forbids inline ones; same key, checked by
+  `tests/theme-init.test.ts`) sets `data-theme` before first paint; `src/lib/theme.ts` (`initTheme` in `main.tsx`,
+  `setTheme`, `useTheme`) follows OS changes while nothing is stored and syncs `theme-color`. `dark:` is a
+  `@custom-variant` on `[data-theme="dark"]`; `BrandLogo` picks its PNG with `useTheme()`. No `@theme inline`. A new color becomes a
+  token in **both** themes (one lowercase 6-digit hex each) and gets its pairs in `tests/theme-contrast.test.ts`.
+  `primary` is only a fill (text uses `primary-text`); `danger-fill` only for the destructive button; opacity on a
+  token only for backgrounds/borders, never text; `dark:` only for shadows (`dark:shadow-none`,
+  `dark:shadow-popover-dark`, `dark:shadow-dialog-dark`). No hex in `src/` code.
+- `tests/source-rules.test.ts` also fails on: Tailwind palette classes, the removed `brand` tokens, `style={`/`style="`,
+  `transition-all`, `dark:` with a color utility, `import * as` / `lucide-react/dynamic` / `DynamicIcon`, and any `<svg`
+  in `src/` (every icon comes from `lucide-react`, imported one by one; lucide sets `aria-hidden`). Names changed in
+  lucide 1.x: `Trash` (old `Trash2`), `CircleExclamationPoint`, `TriangleExclamationPoint`.
+- Use `not-disabled:hover:` (not `enabled:hover:`) so links styled as buttons keep their hover. Motion: `transition`
+  with `duration-150`/`200`, never `transition-all`; `motion-reduce:` everywhere, plus the global reduced-motion rule
+  in `global.css` (the spinner keeps spinning). Forced colors: buttons keep a (transparent) border, focus is always an
+  `outline`; the brand panel uses `forced-color-adjust-none` and the active menu item is underlined there.
 - No inline scripts or styles (the CSP of spec 8.8 forbids them; `vite preview` serves that CSP and the e2e fixture
   fails on any CSP violation). No `style` props.
 - No `localStorage`/`sessionStorage` for session data: the session is only the HttpOnly `__session` cookie.
@@ -111,7 +140,23 @@ uses prefix `51`; approved texts (pagination, "Todos", "Selecciona", "—", "Men
 - `SearchField`: local text + URL value; calls `onSearch(trimmed)` 300 ms after the last key; "Atrás" updates it.
 - `DataTable`: semantic table, sortable headers (button + `aria-sort`), scroll region (`role="region"`,
   `tabIndex=0`, **`relative`**: without it, `sr-only` spans in cells escape the scroller and widen the page on mobile),
-  `renderExpanded` for an extra row. Row actions use `actionClasses()` + `<RecordName name=...>` (sr-only suffix).
+  `renderExpanded` for an extra row. Column `sticky: "end"` pins the actions column (redesign P4); its divider is a
+  `before:` pseudo-element because `border-collapse` paints `border-l` at the cell's natural position. First load of a
+  list = `TableSkeleton` (`overflow-hidden`: a scrollable decorative box fails axe); later pages keep the old rows with
+  `busy`. Row actions use `actionClasses()` + `<RecordName name=...>` (sr-only suffix).
+- `RowActionsMenu` (redesign D4/4.23): lists show "Ver" and "Editar" with icons and put the rest in "Más acciones
+  {record}" (a `popover="auto"` panel opened with `popoverTarget`; `toggle` bound with `addEventListener`; focus to the
+  first item on open, back to the trigger on select/Escape; no items → no trigger). Position is CSS only
+  (`.row-actions-panel` in `global.css`: anchored with `position-anchor`/`position-area` from `sm`, bottom sheet
+  otherwise). `UserActionButtons`/`DealerActionButtons` take `variant` `row` (list) or `detail` (every action as an
+  `sm` button in `PageHeader`, P1); the user visibility rules live once in `statusActions()`. jsdom has no Popover
+  API: `src/test/setup.ts` polyfills it.
+- Layouts: `AuthLayout` (red stripe; from `lg` the `<header>` is the blue brand panel with the inverse logo; the emblem
+  loads only from `lg` via `<picture>`) and `AppLayout` (sticky `h-14` header; from `lg` a `w-64` side column with a
+  sticky `<nav>` inside). Forms: `Card` with `CardSections`/`CardSection` (P2 headings) and a footer with the actions
+  in the old DOM order (Guardar, Cancelar); the `VERSION_CONFLICT` notice sits above the card. Details: `Card` with the
+  data `DetailList` and an authorship block; the user detail shows the status `Badge` next to the title **and** keeps
+  "Estado" in the list (an e2e reads it). 403/404 share `src/pages/StatusPage.tsx`.
 - `Modal` (native `<dialog>` + `showModal()`): `open` drives it; Escape calls `onDismiss` (none → `closedby="none"`
   and it reopens if the browser force-closes); content exists only while open; focus returns to the opener; an
   element with `data-autofocus` gets the initial focus. `ConfirmDialog` builds on it (focus on "Cancelar"). jsdom has
@@ -144,7 +189,10 @@ here. Never print the API's `.env`.
 ## Commands
 
 - `npm run dev` (port 5173, proxy `/api` → `http://localhost:8000`), `npm run build` (`tsc -b && vite build`),
-  `npm run preview`, `npm run lint`, `npm run test`, `npm run test:e2e`, `npm run api:types`.
+  `npm run preview`, `npm run lint`, `npm run test`, `npm run test:e2e`, `npm run api:types`, `npm run capturas`
+  (redesign gallery: `e2e/capturas.spec.ts` with `playwright.capturas.config.ts`, one Chromium project, light + dark ×
+  360/768/1280, fixed clock, mocked API → `capturas/actual/`; `capturas/` is gitignored and in ESLint's
+  `globalIgnores`; `antes/` = before the redesign, `despues/` = U4).
 - TypeScript projects: `tsconfig.app.json` (browser code, `types: ["vite/client"]` only: no Node globals),
   `tsconfig.test.json` (src tests, + Node types), `tsconfig.node.json` (configs, `e2e/`, `tests/`).
 - Vitest projects (`vitest.config.ts`): `dom` (jsdom, `src/**/*.test.ts(x)`, setup `src/test/setup.ts`) and `node`
@@ -158,6 +206,13 @@ here. Never print the API's `.env`.
   - `api.respond(endpoint, ...responses)`: one per call, the last repeats; `"network-error"` aborts.
   - Fixtures: `ADMIN`, `OPERATOR` (only DEALERS), `NEW_ADMIN` (`mustChangePassword`), `POLICY`.
   - Under 1024 px the side menu is collapsed: use `openMainMenu()` from `e2e/helpers.ts` (decides by viewport width).
+  - List row actions other than Ver/Editar: `openRowActions(page, record)` returns the open panel
+    (`rowActionsTrigger(page, record)` = the "Más acciones" button). On desktop the anchored panel covers the next
+    row's trigger: press Escape before opening another one. Measure a panel only after its entry animation
+    (`getAnimations()` → `finished`).
+  - `e2e/a11y.spec.ts` runs every scenario in light and dark; `e2e/theme.spec.ts` checks the themed background,
+    logos (the inverse one in the brand panel from `lg`), Figtree and reduced motion; `e2e/row-actions.spec.ts` covers
+    "Más acciones" (focus, Escape, click outside, position).
   - When adding endpoints, add them to `ENDPOINTS` and `defaultResponse` in the mock. B7 endpoints answer from
     `e2e/fixtures.ts` (stateless, except `PATCH /profile`, which updates `api.user`); override with `respond`.
     `RecordedRequest.query` holds the query parameters.

@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { LogIn } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, Navigate, useSearchParams } from "react-router";
@@ -79,7 +80,7 @@ export function LoginPage() {
 
   return (
     <>
-      <h1 className="text-xl font-semibold text-fg">Iniciar sesión</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight text-fg">Iniciar sesión</h1>
       <div className="mt-4 empty:hidden">
         {reason === "sesion-expirada" && (
           <Alert variant="warning" live={false}>
@@ -92,7 +93,7 @@ export function LoginPage() {
           </Alert>
         )}
       </div>
-      <form noValidate onSubmit={(event) => void onSubmit(event)} className="mt-6 flex flex-col gap-4">
+      <form noValidate onSubmit={(event) => void onSubmit(event)} className="mt-6 flex flex-col gap-5">
         <TextField
           label="Usuario"
           autoComplete="username"
@@ -108,7 +109,7 @@ export function LoginPage() {
           {...form.register("password")}
         />
         <Alert variant="error">{formError}</Alert>
-        <Button type="submit" loading={mutation.isPending} loadingText="Ingresando...">
+        <Button type="submit" icon={LogIn} loading={mutation.isPending} loadingText="Ingresando..." className="w-full">
           Ingresar
         </Button>
       </form>

@@ -1,13 +1,16 @@
 import { useMutation } from "@tanstack/react-query";
+import { FileSpreadsheet, Plus } from "lucide-react";
 import { Link } from "react-router";
+import { BACK_TO_HOME, MODULES } from "../../app/modules";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { DataTable, type Column } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
 import { PageHeader } from "../../components/PageHeader";
 import { Pagination } from "../../components/Pagination";
 import { SearchField } from "../../components/SearchField";
+import { TableSkeleton } from "../../components/Skeleton";
 import { buttonClasses } from "../../components/styles";
 import { useToast } from "../../components/Toast";
 import { exportDealers, type DealerDetail, type DealerFilters, type DealerListParams, type DealerSort } from "../../lib/api";
@@ -85,18 +88,18 @@ export function DealersListPage() {
   };
 
   const columns: Column<DealerDetail>[] = [
-    { key: "dealerCode", header: "Código", sortKey: "dealerCode", cell: (dealer) => dealer.dealerCode },
+    { key: "dealerCode", header: "Código", sortKey: "dealerCode", cell: (dealer) => dealer.dealerCode, className: "whitespace-nowrap font-medium" },
     { key: "businessName", header: "Razón social", sortKey: "businessName", cell: (dealer) => displayValue(dealer.businessName) },
-    { key: "ruc", header: "RUC", sortKey: "ruc", cell: (dealer) => dealer.ruc, className: "whitespace-nowrap" },
+    { key: "ruc", header: "RUC", sortKey: "ruc", cell: (dealer) => dealer.ruc, className: "whitespace-nowrap tabular-nums" },
     { key: "district", header: "Distrito", cell: (dealer) => dealer.district.name },
     { key: "contactEmail", header: "Correo de contacto", cell: (dealer) => dealer.contactEmail },
-    { key: "contactPhone", header: "Teléfono", cell: (dealer) => displayValue(dealer.contactPhone), className: "whitespace-nowrap" },
+    { key: "contactPhone", header: "Teléfono", cell: (dealer) => displayValue(dealer.contactPhone), className: "whitespace-nowrap tabular-nums" },
     {
       key: "updatedAt",
       header: "Actualizado",
       sortKey: "updatedAt",
       cell: (dealer) => formatDateTime(dealer.updatedAt),
-      className: "whitespace-nowrap",
+      className: "whitespace-nowrap tabular-nums",
     },
     {
       key: "actions",
@@ -104,13 +107,15 @@ export function DealersListPage() {
       cell: (dealer) => (
         <DealerActionButtons dealer={dealer} onDelete={deletion.request} disabled={deletion.pendingDealerId === dealer.id} />
       ),
-      className: "min-w-48",
+      // Fija a la derecha (spec de rediseño, P4): visible aunque la tabla se desplace en móvil.
+      sticky: "end",
     },
   ];
 
   let content;
   if (query.isError) content = <ErrorState onRetry={() => void query.refetch()} />;
-  else if (query.isPending) content = <LoadingState />;
+  // Primera carga: skeleton (4.10). Un cambio de filtro o de página mantiene los datos anteriores con `busy`.
+  else if (query.isPending) content = <TableSkeleton label={TITLE} columns={columns.map((column) => column.header)} />;
   else if (query.data.items.length === 0) content = <EmptyState />;
   else {
     const { data } = query;
@@ -140,33 +145,45 @@ export function DealersListPage() {
     <>
       <PageHeader
         title={TITLE}
+        description={MODULES.DEALERS.description}
+        back={BACK_TO_HOME}
         actions={
           <>
-            <Link to="/dealers/nuevo" className={buttonClasses()}>
+            <Link to="/dealers/nuevo" className={buttonClasses("primary", "w-full sm:w-auto")}>
+              <Plus className="size-4 shrink-0" />
               Nuevo dealer
             </Link>
-            <Button variant="secondary" loading={exportMutation.isPending} loadingText="Exportando..." onClick={onExport}>
+            <Button
+              variant="secondary"
+              icon={FileSpreadsheet}
+              loading={exportMutation.isPending}
+              loadingText="Exportando..."
+              onClick={onExport}
+              className="w-full sm:w-auto"
+            >
               Exportar a Excel
             </Button>
           </>
         }
       />
-      <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SearchField
-          label="Buscar por código, razón social, RUC o contacto"
-          value={listParams.q ?? ""}
-          onSearch={(q) => update({ q })}
-        />
-        <UbigeoSelects
-          mode="filter"
-          value={{
-            departmentCode: listParams.departmentCode ?? "",
-            provinceCode: listParams.provinceCode ?? "",
-            districtUbigeo: listParams.districtUbigeo ?? "",
-          }}
-          onChange={(ubigeo) => update({ ...ubigeo })}
-        />
-      </div>
+      <Card padding="sm" className="mb-6">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+          <SearchField
+            label="Buscar por código, razón social, RUC o contacto"
+            value={listParams.q ?? ""}
+            onSearch={(q) => update({ q })}
+          />
+          <UbigeoSelects
+            mode="filter"
+            value={{
+              departmentCode: listParams.departmentCode ?? "",
+              provinceCode: listParams.provinceCode ?? "",
+              districtUbigeo: listParams.districtUbigeo ?? "",
+            }}
+            onChange={(ubigeo) => update({ ...ubigeo })}
+          />
+        </div>
+      </Card>
       {content}
       {deletion.dialog}
     </>

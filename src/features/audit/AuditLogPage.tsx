@@ -1,16 +1,20 @@
+import { ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { BACK_TO_HOME, MODULES } from "../../app/modules";
 import { useMe } from "../../auth/useMe";
+import { Card } from "../../components/Card";
 import { DataTable, type Column } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
 import { PageHeader } from "../../components/PageHeader";
 import { Pagination } from "../../components/Pagination";
 import { Select, type SelectOption } from "../../components/Select";
-import { actionClasses } from "../../components/styles";
+import { TableSkeleton } from "../../components/Skeleton";
+import { actionClasses, LINK_CLASSES } from "../../components/styles";
 import { TextField } from "../../components/TextField";
 import type { AuditLogItem, AuditLogParams, UserSummary } from "../../lib/api";
+import { cx } from "../../lib/cx";
 import { addDays, formatDateTime, isIsoDate, limaToday } from "../../lib/dates";
 import { failureOf, isHttpStatus } from "../../lib/errors";
 import { displayValue, EMPTY_VALUE, fullName, userRefLabel } from "../../lib/format";
@@ -110,23 +114,28 @@ export function AuditLogPage() {
   const toError = rangeError ?? failure?.fieldErrors?.to;
 
   const columns: Column<AuditLogItem>[] = [
-    { key: "occurredAt", header: "Fecha y hora", cell: (item) => formatDateTime(item.occurredAt), className: "whitespace-nowrap" },
+    {
+      key: "occurredAt",
+      header: "Fecha y hora",
+      cell: (item) => formatDateTime(item.occurredAt),
+      className: "whitespace-nowrap tabular-nums",
+    },
     {
       key: "actor",
       header: "Usuario",
       cell: (item) =>
         item.actor ? (
           <span className="flex flex-col">
-            <span>{item.actor.fullName}</span>
+            <span className="text-fg">{item.actor.fullName}</span>
             <span className="text-xs text-fg-muted">{item.actor.username}</span>
           </span>
         ) : (
           EMPTY_VALUE
         ),
     },
-    { key: "action", header: "Acción", cell: (item) => actionLabel(item.action) },
+    { key: "action", header: "Acción", cell: (item) => actionLabel(item.action), className: "font-medium" },
     { key: "entity", header: "Entidad", cell: (item) => <EntityCell item={item} />, className: "min-w-48" },
-    { key: "ip", header: "IP", cell: (item) => displayValue(item.ipAddress), className: "whitespace-nowrap" },
+    { key: "ip", header: "IP", cell: (item) => displayValue(item.ipAddress), className: "whitespace-nowrap tabular-nums" },
     {
       key: "details",
       header: "Detalle",
@@ -139,8 +148,15 @@ export function AuditLogPage() {
             aria-expanded={open}
             aria-controls={open ? detailId(item.id) : undefined}
             onClick={() => toggle(item.id)}
-            className={`${actionClasses()} whitespace-nowrap`}
+            className={cx(actionClasses(), "group")}
           >
+            {/* Gira 90° abierto, según `aria-expanded` del botón (variante `group-aria-expanded:`, 3.6 y 3.7). */}
+            <ChevronRight
+              className={cx(
+                "size-4 shrink-0 transition-transform duration-200 ease-out group-aria-expanded:rotate-90",
+                "motion-reduce:transition-none motion-reduce:transform-none",
+              )}
+            />
             {open ? "Ocultar detalle" : "Ver detalle"}
           </button>
         );
@@ -160,7 +176,8 @@ export function AuditLogPage() {
       />
     );
   } else if (failure) content = null;
-  else if (!logsQuery.data) content = <LoadingState />;
+  // Primera carga: skeleton (4.10). Un cambio de filtro o de página mantiene los datos anteriores con `busy`.
+  else if (!logsQuery.data) content = <TableSkeleton label={TITLE} columns={columns.map((column) => column.header)} />;
   else if (logsQuery.data.items.length === 0) content = <EmptyState />;
   else {
     const { data } = logsQuery;
@@ -196,43 +213,45 @@ export function AuditLogPage() {
 
   return (
     <>
-      <PageHeader title={TITLE} />
-      <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <TextField
-          label="Desde"
-          type="date"
-          value={filters.from ?? ""}
-          onChange={(event) => update({ from: event.target.value }, { keepEmpty: DATE_KEYS })}
-        />
-        <TextField
-          label="Hasta"
-          type="date"
-          value={filters.to ?? ""}
-          error={toError}
-          onChange={(event) => update({ to: event.target.value }, { keepEmpty: DATE_KEYS })}
-        />
-        <Select
-          label="Usuario"
-          placeholder="Todos"
-          options={userOptions(users, filters.actorUserId, logsQuery.data?.items ?? [])}
-          value={filters.actorUserId ?? ""}
-          onChange={(event) => update({ actorUserId: event.target.value })}
-        />
-        <Select
-          label="Acción"
-          placeholder="Todos"
-          options={AUDIT_ACTIONS.map((action) => ({ value: action, label: AUDIT_ACTION_LABELS[action] }))}
-          value={filters.action ?? ""}
-          onChange={(event) => update({ action: event.target.value })}
-        />
-        <Select
-          label="Tipo de entidad"
-          placeholder="Todos"
-          options={AUDIT_ENTITY_TYPES.map((type) => ({ value: type, label: ENTITY_TYPES[type].label }))}
-          value={filters.entityType ?? ""}
-          onChange={(event) => update({ entityType: event.target.value })}
-        />
-      </div>
+      <PageHeader title={TITLE} description={MODULES.AUDITORIA.description} back={BACK_TO_HOME} />
+      <Card padding="sm" className="mb-6">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-5">
+          <TextField
+            label="Desde"
+            type="date"
+            value={filters.from ?? ""}
+            onChange={(event) => update({ from: event.target.value }, { keepEmpty: DATE_KEYS })}
+          />
+          <TextField
+            label="Hasta"
+            type="date"
+            value={filters.to ?? ""}
+            error={toError}
+            onChange={(event) => update({ to: event.target.value }, { keepEmpty: DATE_KEYS })}
+          />
+          <Select
+            label="Usuario"
+            placeholder="Todos"
+            options={userOptions(users, filters.actorUserId, logsQuery.data?.items ?? [])}
+            value={filters.actorUserId ?? ""}
+            onChange={(event) => update({ actorUserId: event.target.value })}
+          />
+          <Select
+            label="Acción"
+            placeholder="Todos"
+            options={AUDIT_ACTIONS.map((action) => ({ value: action, label: AUDIT_ACTION_LABELS[action] }))}
+            value={filters.action ?? ""}
+            onChange={(event) => update({ action: event.target.value })}
+          />
+          <Select
+            label="Tipo de entidad"
+            placeholder="Todos"
+            options={AUDIT_ENTITY_TYPES.map((type) => ({ value: type, label: ENTITY_TYPES[type].label }))}
+            value={filters.entityType ?? ""}
+            onChange={(event) => update({ entityType: event.target.value })}
+          />
+        </div>
+      </Card>
       {content}
     </>
   );
@@ -251,7 +270,7 @@ function EntityCell({ item }: { item: AuditLogItem }) {
       <span>{type?.label ?? item.entityType}</span>
       {item.entityId !== null &&
         (type ? (
-          <Link to={`${type.path}/${item.entityId}`} className="font-mono text-xs break-all text-primary-text underline underline-offset-2">
+          <Link to={`${type.path}/${item.entityId}`} className={cx(LINK_CLASSES, "font-mono text-xs break-all")}>
             {item.entityId}
           </Link>
         ) : (

@@ -5,9 +5,10 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
 import { PageHeader } from "../../components/PageHeader";
+import { DetailSkeleton } from "../../components/Skeleton";
 import { buttonClasses } from "../../components/styles";
 import { createUser, type UserCreateRequest } from "../../lib/api";
 import { failureMessage, failureOf, isHttpStatus, unwrap } from "../../lib/errors";
@@ -57,21 +58,37 @@ export function UserCreatePage() {
 
   let content;
   if (rolesQuery.isError) content = <ErrorState onRetry={() => void rolesQuery.refetch()} />;
-  else if (rolesQuery.isPending) content = <LoadingState />;
-  else {
+  else if (rolesQuery.isPending) {
+    // Primera carga (4.10).
     content = (
-      <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-6">
-        <p className="text-sm text-fg-muted">* Campo obligatorio</p>
-        <UserFields form={form} roles={rolesQuery.data} />
-        <Alert variant="error">{formError}</Alert>
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" loading={mutation.isPending} loadingText="Guardando...">
-            Guardar
-          </Button>
-          <Link to="/usuarios" className={buttonClasses("secondary")}>
-            Cancelar
-          </Link>
-        </div>
+      <Card>
+        <DetailSkeleton items={7} columns={2} />
+      </Card>
+    );
+  } else {
+    // Spec de rediseño, 6.4: una tarjeta con la leyenda, las secciones (P2) y el pie con las acciones.
+    content = (
+      <form noValidate onSubmit={(event) => void onSubmit(event)}>
+        <Card
+          footer={
+            <>
+              <Button type="submit" loading={mutation.isPending} loadingText="Guardando...">
+                Guardar
+              </Button>
+              <Link to="/usuarios" className={buttonClasses("secondary")}>
+                Cancelar
+              </Link>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-6">
+            <p className="text-xs text-fg-muted">* Campo obligatorio</p>
+            <UserFields form={form} roles={rolesQuery.data} />
+          </div>
+          <Alert variant="error" className="mt-6">
+            {formError}
+          </Alert>
+        </Card>
       </form>
     );
   }
@@ -79,7 +96,7 @@ export function UserCreatePage() {
   return (
     <div className="max-w-3xl">
       <PageHeader title={TITLE} />
-      <div className="rounded-lg bg-surface p-6 shadow-sm">{content}</div>
+      {content}
       <TemporaryPasswordModal
         open={created !== null}
         username={created?.username ?? ""}

@@ -1,27 +1,37 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { Plus } from "lucide-react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setTheme } from "../lib/theme";
 import { Avatar } from "./Avatar";
 import { BrandLogo } from "./BrandLogo";
 import { Button } from "./Button";
 
 // Spec de rediseño, 3.8, 4.2, 4.21 y 9.3.
 describe("BrandLogo (spec de rediseño, 3.8)", () => {
-  it("alt 'Yamaha', fuente clara por defecto y oscura con prefers-color-scheme: dark", () => {
-    const { container } = render(<BrandLogo className="h-8" />);
+  afterEach(() => {
+    delete document.documentElement.dataset.theme;
+    localStorage.clear();
+  });
+
+  it("alt 'Yamaha', logo claro por defecto y el oscuro al cambiar al tema oscuro (v1.3)", () => {
+    render(<BrandLogo className="h-8" />);
     const logo = screen.getByRole("img", { name: "Yamaha" });
     expect(logo.getAttribute("src")).toMatch(/yamaha-logo-light/);
     expect(logo).toHaveAttribute("width", "253");
     expect(logo).toHaveAttribute("height", "88");
-    const source = container.querySelector("picture > source");
-    expect(source).toHaveAttribute("media", "(prefers-color-scheme: dark)");
-    expect(source?.getAttribute("srcset")).toMatch(/yamaha-logo-dark/);
+
+    act(() => setTheme("dark"));
+    expect(logo.getAttribute("src")).toMatch(/yamaha-logo-dark/);
+    act(() => setTheme("light"));
+    expect(logo.getAttribute("src")).toMatch(/yamaha-logo-light/);
   });
 
-  it("variante inversa: solo la imagen de textos blancos", () => {
-    const { container } = render(<BrandLogo variant="inverse" />);
-    expect(screen.getByRole("img", { name: "Yamaha" }).getAttribute("src")).toMatch(/yamaha-logo-inverse/);
-    expect(container.querySelector("picture")).toBeNull();
+  it("variante inversa: la imagen de textos blancos en ambos temas", () => {
+    render(<BrandLogo variant="inverse" />);
+    const logo = screen.getByRole("img", { name: "Yamaha" });
+    expect(logo.getAttribute("src")).toMatch(/yamaha-logo-inverse/);
+    act(() => setTheme("dark"));
+    expect(logo.getAttribute("src")).toMatch(/yamaha-logo-inverse/);
   });
 });
 

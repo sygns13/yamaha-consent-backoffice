@@ -4,7 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <!-- Tema claro u oscuro según el sistema (spec de rediseño, 3.2): controles nativos y barra del navegador. -->
+    <!--
+      Tema claro u oscuro (spec de rediseño v1.3, 3.2): el del sistema hasta que el usuario elige otro con el botón de
+      la cabecera. theme-init.js lo aplica antes del primer pintado (script externo y síncrono: la CSP no admite uno en
+      línea). Las metas cubren el instante previo; src/lib/theme.ts ajusta theme-color al tema aplicado.
+    -->
+    <script src="/theme-init.js"></script>
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111a2b" />

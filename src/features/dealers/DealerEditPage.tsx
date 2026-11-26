@@ -1,13 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router";
 import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
 import { PageHeader } from "../../components/PageHeader";
+import { DetailSkeleton } from "../../components/Skeleton";
 import { buttonClasses } from "../../components/styles";
 import { useToast } from "../../components/Toast";
 import { updateDealer, type DealerDetail, type DealerUpdateRequest } from "../../lib/api";
@@ -37,13 +39,20 @@ export function DealerEditPage() {
       </Alert>
     );
   } else if (query.isError) content = <ErrorState onRetry={() => void query.refetch()} />;
-  else if (query.isPending) content = <LoadingState />;
+  else if (query.isPending) {
+    // Primera carga (4.10).
+    content = (
+      <Card>
+        <DetailSkeleton items={10} columns={2} />
+      </Card>
+    );
+  }
   else content = <DealerEditForm dealer={query.data} reload={() => query.refetch()} />;
 
   return (
     <div className="max-w-3xl">
       <PageHeader title={TITLE} />
-      <div className="rounded-lg bg-surface p-6 shadow-sm">{content}</div>
+      {content}
     </div>
   );
 }
@@ -97,29 +106,40 @@ function DealerEditForm({ dealer, reload }: { dealer: DealerDetail; reload: () =
     }
   };
 
+  // Spec de rediseño, 6.4: el aviso de conflicto arriba de la tarjeta; la tarjeta con la leyenda, las secciones (P2) y
+  // el pie con las acciones.
   return (
-    <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-6">
-      <p className="text-sm text-fg-muted">* Campo obligatorio</p>
-      <DealerFields form={form} fixedDealerCode={dealer.dealerCode} />
-      <Alert variant="warning">
+    <form noValidate onSubmit={(event) => void onSubmit(event)}>
+      <Alert variant="warning" className="mb-6">
         {conflict && (
           <div className="flex flex-wrap items-center gap-3">
             <span>El registro fue modificado por otro usuario.</span>
-            <Button variant="secondary" loading={reloading} onClick={() => void onReload()}>
+            <Button variant="secondary" size="sm" icon={RefreshCw} loading={reloading} onClick={() => void onReload()}>
               Recargar
             </Button>
           </div>
         )}
       </Alert>
-      <Alert variant="error">{formError}</Alert>
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" loading={mutation.isPending} loadingText="Guardando...">
-          Guardar
-        </Button>
-        <Link to={`/dealers/${dealer.id}`} className={buttonClasses("secondary")}>
-          Cancelar
-        </Link>
-      </div>
+      <Card
+        footer={
+          <>
+            <Button type="submit" loading={mutation.isPending} loadingText="Guardando...">
+              Guardar
+            </Button>
+            <Link to={`/dealers/${dealer.id}`} className={buttonClasses("secondary")}>
+              Cancelar
+            </Link>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-6">
+          <p className="text-xs text-fg-muted">* Campo obligatorio</p>
+          <DealerFields form={form} fixedDealerCode={dealer.dealerCode} />
+        </div>
+        <Alert variant="error" className="mt-6">
+          {formError}
+        </Alert>
+      </Card>
     </form>
   );
 }

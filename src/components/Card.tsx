@@ -46,3 +46,21 @@ export function Card({ as: Tag = "div", title, actions, footer, padding = "md", 
     </Tag>
   );
 }
+
+/**
+ * Secciones de un formulario dentro de una tarjeta (spec de rediseño, 6.4 y P2): cada una con su `h2` y una grilla de
+ * dos columnas desde `sm`, separadas por un borde. Va dentro de `CardSections`.
+ */
+export function CardSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-5 py-6 first:pt-0 last:pb-0">
+      <h2 className="text-base font-semibold tracking-tight text-fg">{title}</h2>
+      <div className="grid gap-5 sm:grid-cols-2">{children}</div>
+    </div>
+  );
+}
+
+/** Contenedor de `CardSection`: el borde va entre secciones (`divide-y`), no antes de la primera. */
+export function CardSections({ children }: { children: ReactNode }) {
+  return <div className="flex flex-col divide-y divide-border">{children}</div>;
+}

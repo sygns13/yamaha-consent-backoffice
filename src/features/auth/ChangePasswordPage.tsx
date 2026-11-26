@@ -7,6 +7,7 @@ import { ME_QUERY_KEY, setMustChangePassword } from "../../auth/session";
 import { useMe } from "../../auth/useMe";
 import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
 import { PageHeader } from "../../components/PageHeader";
@@ -44,7 +45,7 @@ export function ChangePasswordPage() {
           Por seguridad, debes cambiar tu contraseña temporal antes de continuar.
         </Alert>
       )}
-      <div className="rounded-lg bg-surface p-6 shadow-sm">{content}</div>
+      <Card>{content}</Card>
     </div>
   );
 }
@@ -89,7 +90,7 @@ function ChangePasswordForm({ me, policy }: { me: Me; policy: PasswordPolicy }) 
   });
 
   return (
-    <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
+    <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-5">
       <PasswordField
         label="Contraseña actual"
         autoComplete="current-password"
@@ -103,12 +104,15 @@ function ChangePasswordForm({ me, policy }: { me: Me; policy: PasswordPolicy }) 
         error={errors.newPassword?.message}
         {...form.register("newPassword")}
       />
-      <PasswordPolicyChecklist
-        id={checklistId}
-        policy={policy}
-        password={newPassword}
-        personalData={{ username: me.username, dni: me.dni }}
-      />
+      {/* Recuadro del checklist, como en Restablecer (spec de rediseño, 6.1). */}
+      <div className="rounded-lg bg-surface-muted p-3">
+        <PasswordPolicyChecklist
+          id={checklistId}
+          policy={policy}
+          password={newPassword}
+          personalData={{ username: me.username, dni: me.dni }}
+        />
+      </div>
       <PasswordField
         label="Confirmar contraseña"
         autoComplete="new-password"

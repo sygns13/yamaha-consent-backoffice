@@ -9,7 +9,7 @@ import {
   TEMPORARY_PASSWORD,
   USERS,
 } from "./fixtures";
-import { detailValue, field, heading, NETWORK_ERROR_TEXT } from "./helpers";
+import { detailValue, field, heading, NETWORK_ERROR_TEXT, openRowActions, rowActionsTrigger } from "./helpers";
 import { ADMIN, apiError, CREATED_USER_ID, expect, ok, test } from "./mock-api";
 
 const SAVED = "Los cambios se guardaron correctamente.";
@@ -204,11 +204,24 @@ test.describe("Acciones (B7.2)", () => {
     const self = row("admin");
     await expect(self.getByRole("link", { name: "Ver admin" })).toBeVisible();
     await expect(self.getByRole("link", { name: "Editar admin" })).toBeVisible();
+    // Rediseño (9.3): en la fila propia el panel "Más acciones" quedaría vacío, así que no hay disparador.
     await expect(self.getByRole("button")).toHaveCount(0);
 
-    await expect(row("jperez").getByRole("button")).toHaveText(["Desactivar jperez", "Generar contraseña temporal jperez", "Eliminar jperez"]);
-    await expect(row("mlopez").getByRole("button")).toHaveText(["Activar mlopez", "Generar contraseña temporal mlopez", "Eliminar mlopez"]);
-    await expect(row("cruiz").getByRole("button")).toHaveText([
+    // Rediseño (9.3): las acciones según el estado están en el panel "Más acciones" de cada fila. Escape lo cierra antes
+    // de abrir el siguiente (en escritorio, el panel anclado tapa la fila de abajo).
+    await expect((await openRowActions(page, "jperez")).getByRole("button")).toHaveText([
+      "Desactivar jperez",
+      "Generar contraseña temporal jperez",
+      "Eliminar jperez",
+    ]);
+    await page.keyboard.press("Escape");
+    await expect((await openRowActions(page, "mlopez")).getByRole("button")).toHaveText([
+      "Activar mlopez",
+      "Generar contraseña temporal mlopez",
+      "Eliminar mlopez",
+    ]);
+    await page.keyboard.press("Escape");
+    await expect((await openRowActions(page, "cruiz")).getByRole("button")).toHaveText([
       "Desactivar cruiz",
       "Desbloquear cruiz",
       "Generar contraseña temporal cruiz",
@@ -221,8 +234,10 @@ test.describe("Acciones (B7.2)", () => {
 
   test("desactivar con ConfirmDialog: Cancelar no llama y devuelve el foco; confirmar llama y avisa", async ({ page, api }) => {
     await page.goto("/usuarios");
-    const trigger = page.getByRole("button", { name: "Desactivar jperez" });
-    await trigger.click();
+    // Rediseño (9.3): "Desactivar" está en "Más acciones"; al cerrar el diálogo, el foco vuelve a ese disparador.
+    const trigger = rowActionsTrigger(page, "jperez");
+    const deactivate = async () => (await openRowActions(page, "jperez")).getByRole("button", { name: "Desactivar jperez" }).click();
+    await deactivate();
     const dialog = page.getByRole("dialog", { name: "Desactivar" });
     await expect(dialog).toHaveAccessibleDescription(
       "¿Desactivar a jperez? No podrá iniciar sesión y se cerrarán sus sesiones activas.",
@@ -233,11 +248,11 @@ test.describe("Acciones (B7.2)", () => {
     await expect(trigger).toBeFocused();
     expect(api.calls("userDeactivate")).toHaveLength(0);
 
-    await trigger.click();
+    await deactivate();
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
 
-    await trigger.click();
+    await deactivate();
     await dialog.getByRole("button", { name: "Desactivar" }).click();
     await expect(dialog).toBeHidden();
     await expect(toast(page, SAVED)).toBeVisible();
@@ -246,9 +261,9 @@ test.describe("Acciones (B7.2)", () => {
 
   test("activar y desbloquear van sin confirmación (D4)", async ({ page, api }) => {
     await page.goto("/usuarios");
-    await page.getByRole("button", { name: "Activar mlopez" }).click();
+    await (await openRowActions(page, "mlopez")).getByRole("button", { name: "Activar mlopez" }).click();
     await expect(toast(page, SAVED)).toBeVisible();
-    await page.getByRole("button", { name: "Desbloquear cruiz" }).click();
+    await (await openRowActions(page, "cruiz")).getByRole("button", { name: "Desbloquear cruiz" }).click();
     await expect.poll(() => api.calls("userUnlock").length).toBe(1);
     await expect(page.getByRole("dialog")).toBeHidden();
     expect(api.calls("userActivate")[0]?.path).toBe(`/users/${INACTIVE_USER.id}/activate`);
@@ -257,7 +272,7 @@ test.describe("Acciones (B7.2)", () => {
 
   test("generar contraseña temporal: confirmación y el mismo modal", async ({ page, api }) => {
     await page.goto("/usuarios");
-    await page.getByRole("button", { name: "Generar contraseña temporal jperez" }).click();
+    await (await openRowActions(page, "jperez")).getByRole("button", { name: "Generar contraseña temporal jperez" }).click();
     const confirm = page.getByRole("dialog", { name: "Generar contraseña temporal" });
     await expect(confirm).toHaveAccessibleDescription(
       "Se generará una nueva contraseña temporal para jperez y se cerrarán sus sesiones activas. ¿Continuar?",
@@ -276,7 +291,7 @@ test.describe("Acciones (B7.2)", () => {
   test("eliminar con confirmación → 'Usuario eliminado.' y recarga de la lista", async ({ page, api }) => {
     api.respond("users", ok(pageOf(USERS.map(summary))), ok(pageOf(USERS.filter((u) => u.id !== ACTIVE_USER.id).map(summary))));
     await page.goto("/usuarios");
-    await page.getByRole("button", { name: "Eliminar jperez" }).click();
+    await (await openRowActions(page, "jperez")).getByRole("button", { name: "Eliminar jperez" }).click();
     const dialog = page.getByRole("dialog", { name: "Eliminar" });
     await expect(dialog).toHaveAccessibleDescription("¿Eliminar a jperez? Dejará de mostrarse y se cerrarán sus sesiones activas.");
     await dialog.getByRole("button", { name: "Eliminar" }).click();
@@ -288,7 +303,7 @@ test.describe("Acciones (B7.2)", () => {
   test("un error de la acción (LAST_ADMIN) se avisa con el detail de la API", async ({ page, api }) => {
     api.respond("userDeactivate", apiError(409, "LAST_ADMIN", "Debe quedar al menos un Administrador activo."));
     await page.goto("/usuarios");
-    await page.getByRole("button", { name: "Desactivar cruiz" }).click();
+    await (await openRowActions(page, "cruiz")).getByRole("button", { name: "Desactivar cruiz" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Desactivar" }).click();
     await expect(page.getByRole("status").getByText("Debe quedar al menos un Administrador activo.")).toBeVisible();
   });

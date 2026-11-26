@@ -9,7 +9,7 @@ import {
   EXPORT_FILENAME,
   page as pageOf,
 } from "./fixtures";
-import { detailValue, field, heading, NETWORK_ERROR_TEXT } from "./helpers";
+import { detailValue, field, heading, NETWORK_ERROR_TEXT, openRowActions } from "./helpers";
 import { ADMIN, apiError, expect, ok, OPERATOR, test } from "./mock-api";
 
 const SEARCH_LABEL = "Buscar por código, razón social, RUC o contacto";
@@ -217,11 +217,12 @@ test.describe("Edición, detalle y eliminación (B8.3)", () => {
   test("eliminación desde la lista: Cancelar no llama; confirmar avisa y recarga", async ({ page, api }) => {
     api.respond("dealers", ok(pageOf(DEALERS)), ok(pageOf([DEALER_LIMA])));
     await page.goto("/dealers");
-    await page.getByRole("button", { name: "Eliminar CA0001" }).click();
+    // Rediseño (9.3): en la lista, "Eliminar" está en "Más acciones".
+    await (await openRowActions(page, "CA0001")).getByRole("button", { name: "Eliminar CA0001" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Cancelar" }).click();
     expect(api.calls("dealerDelete")).toHaveLength(0);
 
-    await page.getByRole("button", { name: "Eliminar CA0001" }).click();
+    await (await openRowActions(page, "CA0001")).getByRole("button", { name: "Eliminar CA0001" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Eliminar" }).click();
     await expect(toast(page, "Dealer eliminado.")).toBeVisible();
     await expect(page.getByRole("cell", { name: "CA0001", exact: true })).toHaveCount(0);
@@ -257,7 +258,9 @@ test.describe("Lista: búsqueda, filtros, orden y página en la URL (B8.4)", () 
       "ventas@puerto.pe",
       "—",
       "16/11/2026 09:00",
-      "Ver CA0001Editar CA0001Eliminar CA0001",
+      // Rediseño (D4, aprobado por el responsable el 24/11/2026): Ver y Editar visibles, Eliminar en "Más acciones".
+      // `textContent` incluye el panel cerrado.
+      "Ver CA0001Editar CA0001Más acciones CA0001Eliminar CA0001",
     ]);
 
     await page.getByLabel(SEARCH_LABEL).pressSequentially("abc motors");

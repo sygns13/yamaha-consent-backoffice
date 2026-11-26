@@ -1,11 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import { ArrowLeft, Send } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
 import { LINK_CLASSES } from "../../components/styles";
+import { cx } from "../../lib/cx";
 import { TextField } from "../../components/TextField";
 import { forgotPassword, type ForgotPasswordRequest } from "../../lib/api";
 import { failureMessage, failureOf, unwrap } from "../../lib/errors";
@@ -41,7 +43,7 @@ export function ForgotPasswordPage() {
 
   return (
     <>
-      <h1 className="text-xl font-semibold text-fg">Recuperar contraseña</h1>
+      <h1 className="font-display text-xl font-semibold tracking-tight text-fg">Recuperar contraseña</h1>
       <Alert variant="success" live="polite" className="mt-4">
         {sentDetail}
       </Alert>
@@ -50,7 +52,7 @@ export function ForgotPasswordPage() {
           <p className="mt-2 text-sm text-fg-muted">
             Ingresa tu usuario o tu correo y te enviaremos un enlace para crear una nueva contraseña.
           </p>
-          <form noValidate onSubmit={(event) => void onSubmit(event)} className="mt-6 flex flex-col gap-4">
+          <form noValidate onSubmit={(event) => void onSubmit(event)} className="mt-6 flex flex-col gap-5">
             <TextField
               label="Usuario o correo"
               autoComplete="username"
@@ -60,14 +62,15 @@ export function ForgotPasswordPage() {
               {...form.register("identifier")}
             />
             <Alert variant="error">{formError}</Alert>
-            <Button type="submit" loading={mutation.isPending}>
+            <Button type="submit" icon={Send} loading={mutation.isPending} className="w-full">
               Enviar enlace
             </Button>
           </form>
         </>
       )}
       <p className="mt-6 text-center text-sm">
-        <Link to="/login" className={LINK_CLASSES}>
+        <Link to="/login" className={cx(LINK_CLASSES, "inline-flex items-center gap-1.5")}>
+          <ArrowLeft className="size-4 shrink-0" />
           Volver a iniciar sesión
         </Link>
       </p>

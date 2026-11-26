@@ -31,13 +31,15 @@ interface TableSkeletonProps {
 
 /**
  * Primera carga de una lista (4.10): mismo contenedor y encabezados que `DataTable`, con filas de barras. La tabla
- * visible queda oculta para lectores de pantalla (`aria-hidden`): solo se anuncia "Cargando...".
+ * visible queda oculta para lectores de pantalla (`aria-hidden`): solo se anuncia "Cargando...". Sin desplazamiento
+ * (`overflow-hidden`): es decorativa, y una región desplazable sin foco de teclado es una falla de axe
+ * (`scrollable-region-focusable`, visto en U3 a 360 px).
  */
 export function TableSkeleton({ label, columns, rows = 5 }: TableSkeletonProps) {
   return (
     <LoadingRegion
       label={label}
-      className="relative overflow-x-auto rounded-xl border border-border bg-surface shadow-card dark:shadow-none"
+      className="relative overflow-hidden rounded-xl border border-border bg-surface shadow-card dark:shadow-none"
     >
       <table aria-hidden="true" className="min-w-full text-left text-sm">
         <thead className="bg-surface-muted">

@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export const NETWORK_ERROR_TEXT = "No pudimos conectar. Revisa tu conexión e inténtalo de nuevo.";
 export const VALID_PASSWORD = "Clave#2026";
@@ -30,6 +30,25 @@ export async function openMainMenu(page: Page): Promise<void> {
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
   }
   await expect(mainMenu(page)).toBeVisible();
+}
+
+/** Disparador "Más acciones {registro}" de una fila de lista (spec de rediseño, D4 y 4.23). */
+export function rowActionsTrigger(page: Page, record: string): Locator {
+  return page.getByRole("button", { name: `Más acciones ${record}`, exact: true });
+}
+
+/**
+ * Abre "Más acciones {registro}" de una fila (spec de rediseño, 9.3): en las listas, Activar, Desactivar, Desbloquear,
+ * Generar contraseña temporal y Eliminar están en ese panel. Devuelve el panel (el elemento `popover` del disparador).
+ */
+export async function openRowActions(page: Page, record: string): Promise<Locator> {
+  const trigger = rowActionsTrigger(page, record);
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  const panelId = await trigger.getAttribute("popovertarget");
+  const panel = page.locator(`[id="${panelId ?? ""}"]`);
+  await expect(panel).toBeVisible();
+  return panel;
 }
 
 export async function openUserMenu(page: Page, fullName: string): Promise<void> {

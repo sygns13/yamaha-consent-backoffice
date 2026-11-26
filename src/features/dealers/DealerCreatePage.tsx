@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { Alert } from "../../components/Alert";
 import { Button } from "../../components/Button";
+import { Card } from "../../components/Card";
 import { PageHeader } from "../../components/PageHeader";
 import { buttonClasses } from "../../components/styles";
 import { useToast } from "../../components/Toast";
@@ -52,21 +53,29 @@ export function DealerCreatePage() {
   return (
     <div className="max-w-3xl">
       <PageHeader title={TITLE} />
-      <div className="rounded-lg bg-surface p-6 shadow-sm">
-        <form noValidate onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-6">
-          <p className="text-sm text-fg-muted">* Campo obligatorio</p>
-          <DealerFields form={form} />
-          <Alert variant="error">{formError}</Alert>
-          <div className="flex flex-wrap gap-2">
-            <Button type="submit" loading={mutation.isPending} loadingText="Guardando...">
-              Guardar
-            </Button>
-            <Link to="/dealers" className={buttonClasses("secondary")}>
-              Cancelar
-            </Link>
+      {/* Spec de rediseño, 6.4: una tarjeta con la leyenda, las secciones (P2) y el pie con las acciones. */}
+      <form noValidate onSubmit={(event) => void onSubmit(event)}>
+        <Card
+          footer={
+            <>
+              <Button type="submit" loading={mutation.isPending} loadingText="Guardando...">
+                Guardar
+              </Button>
+              <Link to="/dealers" className={buttonClasses("secondary")}>
+                Cancelar
+              </Link>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-6">
+            <p className="text-xs text-fg-muted">* Campo obligatorio</p>
+            <DealerFields form={form} />
           </div>
-        </form>
-      </div>
+          <Alert variant="error" className="mt-6">
+            {formError}
+          </Alert>
+        </Card>
+      </form>
     </div>
   );
 }

@@ -1,12 +1,13 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
-import { ACTIVE_USER, DEALER_LIMA, LOCKED_USER } from "./fixtures";
-import { expectNoHorizontalScroll, field, fillLogin, heading, openMainMenu } from "./helpers";
-import { ADMIN, apiError, expect, NEW_ADMIN, OPERATOR, test, type MockApi } from "./mock-api";
+import { ACTIVE_USER, DEALER_LIMA, DEALERS, LOCKED_USER, page as pageOf } from "./fixtures";
+import { expectNoHorizontalScroll, field, fillLogin, heading, openMainMenu, openRowActions, rowActionsTrigger } from "./helpers";
+import { ADMIN, apiError, expect, NEW_ADMIN, ok, OPERATOR, test, type MockApi } from "./mock-api";
 
 /**
  * B6.9, B7.6 y B8.6: WCAG 2.2 AA (axe) a 360, 768 y 1280 px, sin scroll horizontal. Rediseño (9.3, U1.4): cada
- * escenario corre en tema claro y oscuro (`prefers-color-scheme`).
+ * escenario corre en tema claro y oscuro (`prefers-color-scheme`). Desde U3 (9.3), las acciones de fila de las listas
+ * se abren con "Más acciones", y hay escenarios para ese panel abierto, la lista vacía y el *skeleton*.
  */
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const WIDTHS = [360, 768, 1280];
@@ -127,7 +128,16 @@ const SCENARIOS: Scenario[] = [
     open: async (page, api) => {
       api.user = ADMIN;
       await page.goto("/usuarios");
-      await expect(page.getByRole("button", { name: "Desbloquear cruiz" })).toBeVisible();
+      await expect(rowActionsTrigger(page, "cruiz")).toBeVisible();
+    },
+  },
+  {
+    name: "Usuarios con Más acciones abierto",
+    open: async (page, api) => {
+      api.user = ADMIN;
+      await page.goto("/usuarios");
+      const panel = await openRowActions(page, "cruiz");
+      await expect(panel.getByRole("button", { name: "Desbloquear cruiz" })).toBeVisible();
     },
   },
   {
@@ -162,7 +172,7 @@ const SCENARIOS: Scenario[] = [
     open: async (page, api) => {
       api.user = ADMIN;
       await page.goto("/usuarios");
-      await page.getByRole("button", { name: "Desactivar jperez" }).click();
+      await (await openRowActions(page, "jperez")).getByRole("button", { name: "Desactivar jperez" }).click();
       await expect(page.getByRole("dialog", { name: "Desactivar" })).toBeVisible();
     },
   },
@@ -171,7 +181,7 @@ const SCENARIOS: Scenario[] = [
     open: async (page, api) => {
       api.user = ADMIN;
       await page.goto("/usuarios");
-      await page.getByRole("button", { name: "Generar contraseña temporal jperez" }).click();
+      await (await openRowActions(page, "jperez")).getByRole("button", { name: "Generar contraseña temporal jperez" }).click();
       await page.getByRole("dialog").getByRole("button", { name: "Generar contraseña temporal" }).click();
       await expect(page.getByRole("dialog", { name: "Contraseña temporal" })).toBeVisible();
     },
@@ -211,8 +221,27 @@ const SCENARIOS: Scenario[] = [
     open: async (page, api) => {
       api.user = OPERATOR;
       await page.goto("/dealers?departmentCode=15");
-      await expect(page.getByRole("button", { name: "Eliminar CL0001" })).toBeVisible();
+      await expect(rowActionsTrigger(page, "CL0001")).toBeVisible();
       await expect(field(page, "Provincia")).toBeEnabled();
+    },
+  },
+  {
+    name: "Dealers (lista vacía)",
+    open: async (page, api) => {
+      api.user = OPERATOR;
+      api.respond("dealers", ok(pageOf([])));
+      await page.goto("/dealers?q=zzz");
+      await expect(page.getByText("No hay resultados para los filtros aplicados.")).toBeVisible();
+    },
+  },
+  {
+    name: "Dealers (primera carga, skeleton)",
+    open: async (page, api) => {
+      api.user = OPERATOR;
+      // La respuesta tarda: axe revisa el skeleton. El test espera a que termine (unrouteAll al final).
+      api.respond("dealers", { status: 200, body: pageOf(DEALERS), delayMs: 5_000 });
+      await page.goto("/dealers");
+      await expect(page.getByRole("status", { name: "Dealers" })).toContainText("Cargando...");
     },
   },
   {
@@ -247,7 +276,7 @@ const SCENARIOS: Scenario[] = [
     open: async (page, api) => {
       api.user = OPERATOR;
       await page.goto("/dealers");
-      await page.getByRole("button", { name: "Eliminar CL0001" }).click();
+      await (await openRowActions(page, "CL0001")).getByRole("button", { name: "Eliminar CL0001" }).click();
       await expect(page.getByRole("dialog", { name: "¿Eliminar el dealer CL0001?" })).toBeVisible();
     },
   },
@@ -267,6 +296,8 @@ for (const theme of THEMES) {
             [],
           );
           await expectNoHorizontalScroll(page);
+          // Una respuesta con demora (skeleton) termina antes de cerrar la página: nada llega al proxy del preview.
+          await page.unrouteAll({ behavior: "wait" });
         });
       }
     });
