@@ -36,9 +36,9 @@ uses prefix `51`; approved texts (pagination, "Todos", "Selecciona", "—", "Men
 `sr-only` suffix, "Detalle del usuario"/"Detalle del dealer", "Usuario eliminado."); Excel export timeout 60 s
 (D3), every other call 15 s.
 
-Redesign (branch `feat/rediseno-ui`): U0–U2 committed (`f3326d8`); U3 and U4 done on 24/11/2026 (uncommitted), except
-U4.5 (owner's visual approval of `capturas/despues/`). U5 (test VPS, guide 13.13) only on request; Production is out of
-scope (PENDIENTE-41).
+Redesign (branch `feat/rediseno-ui`): U0–U2 committed (`f3326d8`); U3, U4 and the v1.3 changes (theme button, "Volver"
+links) committed `3853185` after the owner's visual approval (U4.5, 26/11/2026). U5 done on 26/11/2026: the test VPS
+runs `3853185` (guide 13.13). Merge to `master` only on request; Production is out of scope (PENDIENTE-41).
 
 ## Rules (spec section 8.1 + owner's decisions)
 

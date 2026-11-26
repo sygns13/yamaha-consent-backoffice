@@ -17,7 +17,7 @@ rol, Gestión de Dealers (con exportación a Excel), Usuarios, Mi perfil y Bitá
 | B7 | Usuarios, Mi perfil y Bitácora | ✅ |
 | B8 | Dealers | ✅ |
 | B9 | Despliegue: `firebase.json`, `.firebaserc`, VPS de pruebas (17/11/2026) | ✅ VPS · Producción pendiente (B9.3) |
-| U0–U4 | Rediseño visual (rama `feat/rediseno-ui`): tokens con tema claro y oscuro, marca Yamaha, Figtree, íconos, componentes, layouts y pantallas | ✅ U0–U3 · U4 🟡 (aprobación visual de la galería) · U5 (VPS) a pedido |
+| U0–U5 | Rediseño visual (rama `feat/rediseno-ui`): tokens con tema claro y oscuro (botón en la cabecera), marca Yamaha, Figtree, íconos, componentes, layouts, pantallas y enlaces "Volver" | ✅ U0–U4 · U5 ✅ VPS de pruebas (26/11/2026) · Producción pendiente (PENDIENTE-41) |
 
 ## Stack
 
